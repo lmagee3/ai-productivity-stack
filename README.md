@@ -23,6 +23,13 @@ Local-first AI productivity system.
 - `make frontend`
 - `make health`
 
+## Local Dev Verification
+Date: 2026-02-09
+- Backend: `./shell/dev-backend.sh`
+  - Failed: pip could not download dependencies (network unavailable). Error: `No matching distribution found for fastapi==0.111.0`.
+- Frontend (Tauri): `cd frontend && npm run tauri:dev`
+  - Failed: `vite: command not found` because `npm install` could not complete (network unavailable).
+
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
 - Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)
