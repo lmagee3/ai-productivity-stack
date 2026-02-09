@@ -18,3 +18,4 @@ Local-first AI productivity system.
 
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
+- Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)
