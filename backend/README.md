@@ -11,6 +11,12 @@
 ## Configuration
 Settings are loaded from `.env` in `backend/` (see `.env.example`).
 
+### LLM settings
+- `LLM_DEFAULT_PROVIDER=local`
+- `LOCAL_LLM_BASE_URL` (optional)
+- `LOCAL_LLM_MODEL` (default `gemma`)
+- `LOCAL_LLM_TIMEOUT_S` (seconds)
+
 ## Database
 SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 
@@ -22,3 +28,8 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 
 ## Status
 - `GET /status` returns uptime, env, and stubbed operational metrics
+
+## Brain
+- `POST /brain/dispatch` returns a strict dispatcher decision JSON
+- `POST /email/draft` returns a draft only (no send)
+- `POST /notion/patch` returns a proposed patch only (no write)
