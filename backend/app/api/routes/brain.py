@@ -23,6 +23,9 @@ class DispatchDecision(BaseModel):
     priority: Literal["low", "normal", "high", "urgent"]
     domain: str
     due_date: date | None = None
+    course: str | None = None
+    source: Literal["blackboard", "email", "manual"] | None = None
+    confidence: float = Field(..., ge=0.0, le=1.0)
     summary: str
     suggested_actions: list[str]
     route_to: Literal["local", "codex", "claude", "gpt", "human"]
@@ -58,7 +61,8 @@ def dispatch(payload: DispatchRequest) -> DispatchResponse:
 
     prompt = (
         "You are a dispatcher. Return strict JSON with keys: intent, priority, domain, "
-        "due_date (optional, ISO-8601), summary, suggested_actions (array), route_to. "
+        "due_date (optional, ISO-8601), course (optional), source (optional: blackboard|email|manual), "
+        "confidence (0-1), summary, suggested_actions (array), route_to. "
         "Routes: local|codex|claude|gpt|human.\n\nInput:\n"
         f"{payload.content}"
     )
@@ -75,6 +79,9 @@ def dispatch(payload: DispatchRequest) -> DispatchResponse:
                 priority="normal",
                 domain="general",
                 due_date=None,
+                course=None,
+                source=None,
+                confidence=0.0,
                 summary="Invalid model output; routed to human for review.",
                 suggested_actions=["Review input", "Clarify required action"],
                 route_to="human",

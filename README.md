@@ -40,6 +40,10 @@ Date: 2026-02-09
 ## Dependency Locking (Optional)
 - If you want locked Python deps, use `pip-tools` or `uv` to generate a `requirements.lock` and install from it.
 
+## Student Ops v1.1
+- `POST /ingest/assignment` for manual task intake
+- `POST /alerts/test` for Ntfy notification testing
+
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
 - Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)

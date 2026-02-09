@@ -17,6 +17,11 @@ Settings are loaded from `.env` in `backend/` (see `.env.example`).
 - `LOCAL_LLM_MODEL` (default `gemma`)
 - `LOCAL_LLM_TIMEOUT_S` (seconds)
 
+### Notification settings (Ntfy)
+- `NOTIFY_PROVIDER=ntfy|off` (default `off`)
+- `NTFY_URL` (default `https://ntfy.sh`)
+- `NTFY_TOPIC` (required when provider is `ntfy`)
+
 ## Database
 SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 
@@ -33,3 +38,9 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 - `POST /brain/dispatch` returns a strict dispatcher decision JSON
 - `POST /email/draft` returns a draft only (no send)
 - `POST /notion/patch` returns a proposed patch only (no write)
+
+## Alerts
+- `POST /alerts/test` sends a test notification (allowed to send)
+
+## Student Ops
+- `POST /ingest/assignment` stores a manual assignment and returns urgency bucket
