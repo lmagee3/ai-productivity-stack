@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.health import router as health_router
 from app.api.routes.status import router as status_router
+from app.core.config import get_settings
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
     app = FastAPI(title="MAGE API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
@@ -15,8 +17,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(health_router)
-    app.include_router(status_router)
+    app.include_router(health_router, prefix=settings.API_PREFIX)
+    app.include_router(status_router, prefix=settings.API_PREFIX)
     return app
 
 

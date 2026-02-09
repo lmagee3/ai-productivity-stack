@@ -8,6 +8,9 @@
 2. Start server:
    - `uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`
 
+## Configuration
+Settings are loaded from `.env` in `backend/` (see `.env.example`).
+
 ## Health
 - `GET /health` returns `{ "status": "ok" }`
 
