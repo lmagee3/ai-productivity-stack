@@ -17,6 +17,12 @@ Local-first AI productivity system.
 3. Health check: `./shell/healthcheck.sh`
 4. Migrations: `cd backend && alembic upgrade head`
 
+## Makefile
+- `make dev`
+- `make backend`
+- `make frontend`
+- `make health`
+
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
 - Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)
