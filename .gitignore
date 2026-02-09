@@ -8,5 +8,8 @@ node_modules/
 dist/
 .vite/
 
+# Rust (Tauri)
+target/
+
 # OS
 .DS_Store

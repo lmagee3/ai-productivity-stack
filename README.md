@@ -19,3 +19,12 @@ Local-first AI productivity system.
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
 - Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)
+
+## Desktop (Tauri)
+Requirements:
+- Rust toolchain (`rustup`, `cargo`)
+- Tauri CLI (`cargo install tauri-cli`)
+
+Run:
+1. Backend: `./shell/dev-backend.sh`
+2. Desktop app: `cd frontend && npm install && npm run tauri:dev`
