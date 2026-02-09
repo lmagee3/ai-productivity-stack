@@ -103,3 +103,36 @@ h1 {
   font-size: 0.8rem;
   color: #6b7280;
 }
+
+.panel {
+  display: grid;
+  gap: 16px;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.panel-card {
+  border-radius: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+
+.list {
+  margin: 8px 0 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: #525a6a;
+  display: grid;
+  gap: 6px;
+}

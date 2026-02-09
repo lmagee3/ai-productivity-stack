@@ -44,6 +44,35 @@ Date: 2026-02-09
 - `POST /ingest/assignment` for manual task intake
 - `POST /alerts/test` for Ntfy notification testing
 
+## Ops Summary
+- `GET /ops/summary` for a single-screen operational snapshot
+
+## Curl Examples
+```bash
+curl http://127.0.0.1:8000/health
+```
+```bash
+curl http://127.0.0.1:8000/status
+```
+```bash
+curl http://127.0.0.1:8000/ops/summary
+```
+```bash
+curl -X POST http://127.0.0.1:8000/brain/dispatch \\
+  -H "Content-Type: application/json" \\
+  -d '{"content":"Review CS101 assignment due Friday."}'
+```
+```bash
+curl -X POST http://127.0.0.1:8000/ingest/assignment \\
+  -H "Content-Type: application/json" \\
+  -d '{"title":"Essay draft","due_date":"2026-02-12T17:00:00Z","course":"ENG200","url":"https://example.com"}'
+```
+```bash
+curl -X POST http://127.0.0.1:8000/alerts/test \\
+  -H "Content-Type: application/json" \\
+  -d '{"title":"Test Alert","message":"Notifications online","click_url":"https://ntfy.sh"}'
+```
+
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
 - Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)

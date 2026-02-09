@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.brain import router as brain_router
 from app.api.routes.health import router as health_router
 from app.api.routes.status import router as status_router
+from app.api.routes.ingest_blackboard import router as ingest_blackboard_router
+from app.api.routes.ingest_assignment import router as ingest_assignment_router
+from app.api.routes.alerts import router as alerts_router
+from app.api.routes.ops import router as ops_router
 from app.core.config import get_settings
 
 
@@ -21,6 +25,10 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix=settings.API_PREFIX)
     app.include_router(status_router, prefix=settings.API_PREFIX)
     app.include_router(brain_router, prefix=settings.API_PREFIX)
+    app.include_router(ingest_blackboard_router, prefix=settings.API_PREFIX)
+    app.include_router(ingest_assignment_router, prefix=settings.API_PREFIX)
+    app.include_router(alerts_router, prefix=settings.API_PREFIX)
+    app.include_router(ops_router, prefix=settings.API_PREFIX)
     return app
 
 

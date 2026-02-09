@@ -39,6 +39,9 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 - `POST /email/draft` returns a draft only (no send)
 - `POST /notion/patch` returns a proposed patch only (no write)
 
+## Ops
+- `GET /ops/summary` returns an aggregated operational snapshot
+
 ## Alerts
 - `POST /alerts/test` sends a test notification (allowed to send)
 
