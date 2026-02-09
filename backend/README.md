@@ -11,6 +11,12 @@
 ## Configuration
 Settings are loaded from `.env` in `backend/` (see `.env.example`).
 
+## Database
+SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
+
+### Migrations
+- `alembic upgrade head`
+
 ## Health
 - `GET /health` returns `{ "status": "ok" }`
 

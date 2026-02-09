@@ -15,6 +15,7 @@ Local-first AI productivity system.
 1. Backend: `./shell/dev-backend.sh`
 2. Frontend: `./shell/dev-frontend.sh`
 3. Health check: `./shell/healthcheck.sh`
+4. Migrations: `cd backend && alembic upgrade head`
 
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
