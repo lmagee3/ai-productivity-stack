@@ -31,6 +31,7 @@ Local-first AI productivity system.
 Requirements:
 - Rust toolchain (`rustup`, `cargo`)
 - Tauri CLI (`cargo install tauri-cli`)
+If `cargo` is not on your PATH, run `source "$HOME/.cargo/env"`.
 
 Run:
 1. Backend: `./shell/dev-backend.sh`
