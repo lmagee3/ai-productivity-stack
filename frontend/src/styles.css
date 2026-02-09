@@ -1,0 +1,105 @@
+:root {
+  color-scheme: light;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top left, #f1f5ff, #fdf7f0 40%, #f8f8fb 70%);
+  color: #1b1b1f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.card {
+  width: min(640px, 100%);
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.15);
+  display: grid;
+  gap: 28px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.72rem;
+  color: #67738f;
+  margin: 0 0 8px 0;
+}
+
+h1 {
+  font-size: 2.2rem;
+  margin: 0 0 12px 0;
+}
+
+.subtitle {
+  margin: 0;
+  color: #505469;
+  line-height: 1.5;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #f7f7fb;
+}
+
+.status--ok {
+  background: #effaf3;
+}
+
+.status--error {
+  background: #fff1f0;
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #f97316;
+  box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.2);
+}
+
+.status--ok .dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.2);
+}
+
+.status--error .dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.2);
+}
+
+.label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.value {
+  margin: 4px 0 0 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.meta {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
