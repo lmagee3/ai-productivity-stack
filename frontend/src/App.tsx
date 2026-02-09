@@ -15,6 +15,7 @@ export default function App() {
   });
   const [ops, setOps] = useState<OpsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<"dark" | "light" | "crt">("dark");
 
   useEffect(() => {
     let active = true;
@@ -36,15 +37,51 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const stored = localStorage.getItem("mage_theme");
+    if (stored === "light" || stored === "dark" || stored === "crt") {
+      setTheme(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.body.dataset.theme = theme;
+    localStorage.setItem("mage_theme", theme);
+  }, [theme]);
+
   return (
     <main className="shell">
       <section className="card">
         <header>
-          <p className="eyebrow">MAGE</p>
-          <h1>Local-first AI Productivity</h1>
-          <p className="subtitle">
-            Backend health is checked every 10 seconds from the desktop shell.
-          </p>
+          <div className="header-row">
+            <div>
+              <p className="eyebrow">MAGE</p>
+              <h1>Local-first AI Productivity</h1>
+              <p className="subtitle">
+                Backend health is checked every 10 seconds from the desktop shell.
+              </p>
+            </div>
+            <div className="theme-toggle" role="group" aria-label="Theme toggle">
+              <button
+                className={theme === "light" ? "active" : ""}
+                onClick={() => setTheme("light")}
+              >
+                Light
+              </button>
+              <button
+                className={theme === "dark" ? "active" : ""}
+                onClick={() => setTheme("dark")}
+              >
+                Dark
+              </button>
+              <button
+                className={theme === "crt" ? "active" : ""}
+                onClick={() => setTheme("crt")}
+              >
+                CRT
+              </button>
+            </div>
+          </div>
         </header>
 
         <div className={`status status--${health.status}`}>
