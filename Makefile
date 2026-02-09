@@ -1,4 +1,8 @@
-.PHONY: dev backend frontend health
+.PHONY: setup dev backend frontend health verify verify-offline
+
+setup:
+	python3 -m venv backend/.venv
+	cd frontend && npm install
 
 dev:
 	./shell/dev-backend.sh & \
@@ -13,3 +17,9 @@ frontend:
 
 health:
 	./shell/healthcheck.sh
+
+verify:
+	./shell/verify.sh
+
+verify-offline:
+	./shell/verify.sh

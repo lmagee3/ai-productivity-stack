@@ -18,10 +18,13 @@ Local-first AI productivity system.
 4. Migrations: `cd backend && alembic upgrade head`
 
 ## Makefile
+- `make setup`
 - `make dev`
 - `make backend`
 - `make frontend`
 - `make health`
+- `make verify`
+- `make verify-offline`
 
 ## Local Dev Verification
 Date: 2026-02-09
@@ -29,6 +32,13 @@ Date: 2026-02-09
   - Failed: pip could not download dependencies (network unavailable). Error: `No matching distribution found for fastapi==0.111.0`.
 - Frontend (Tauri): `cd frontend && npm run tauri:dev`
   - Failed: `vite: command not found` because `npm install` could not complete (network unavailable).
+
+## Offline-friendly Verification
+- `make verify` or `make verify-offline` checks Python and Node, creates the backend venv, and reports missing `node_modules` without failing.
+- For online installs: `./shell/verify.sh --online`
+
+## Dependency Locking (Optional)
+- If you want locked Python deps, use `pip-tools` or `uv` to generate a `requirements.lock` and install from it.
 
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
