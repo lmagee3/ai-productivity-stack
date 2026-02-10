@@ -91,6 +91,14 @@ curl -X POST http://127.0.0.1:8000/brain/chat \\
   -H "Content-Type: application/json" \\
   -d '{"message":"What is my next best action?"}'
 ```
+```bash
+curl http://127.0.0.1:8000/brain/providers
+```
+```bash
+curl -X POST http://127.0.0.1:8000/brain/recommend \\
+  -H "Content-Type: application/json" \\
+  -d '{"message":"Summarize my current status","project":"mage"}'
+```
 
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)

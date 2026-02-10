@@ -16,6 +16,8 @@ Settings are loaded from `.env` in `backend/` (see `.env.example`).
 - `LOCAL_LLM_BASE_URL` (optional)
 - `LOCAL_LLM_MODEL` (default `gemma`)
 - `LOCAL_LLM_TIMEOUT_S` (seconds)
+- `OLLAMA_BASE_URL` (default `http://localhost:11434`)
+- `OLLAMA_MODEL` (default `gemma`)
 
 ### Notification settings (Ntfy)
 - `NOTIFY_PROVIDER=ntfy|off` (default `off`)
@@ -55,3 +57,5 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 
 ## Brain Chat
 - `POST /brain/chat` routes intent, gathers context, and logs decisions (approval-first)
+- `GET /brain/providers` lists registered LLM providers
+- `POST /brain/recommend` returns a rule-based provider recommendation

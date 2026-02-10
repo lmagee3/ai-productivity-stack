@@ -47,8 +47,11 @@ class LocalProvider:
 
     def __init__(self) -> None:
         settings = get_settings()
-        self.base_url = settings.LOCAL_LLM_BASE_URL
-        self.model = settings.LOCAL_LLM_MODEL or "gemma"
+        base = settings.LOCAL_LLM_BASE_URL or settings.OLLAMA_BASE_URL
+        if base and not base.endswith("/v1"):
+            base = f"{base.rstrip('/')}/v1"
+        self.base_url = base
+        self.model = settings.LOCAL_LLM_MODEL or settings.OLLAMA_MODEL or "gemma"
         self.timeout = settings.LOCAL_LLM_TIMEOUT_S
 
     def generate(self, prompt: str) -> str:

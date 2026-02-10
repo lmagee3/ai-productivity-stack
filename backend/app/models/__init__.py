@@ -4,6 +4,8 @@ from app.models.notification import Notification
 from app.models.chat import ChatSession, ChatMessage
 from app.models.tool_run import ToolRun
 from app.models.brain_decision import BrainDecision
+from app.models.llm_provider import LLMProvider
+from app.models.project_llm_policy import ProjectLLMPolicy
 
 __all__ = [
     "Task",
@@ -13,4 +15,6 @@ __all__ = [
     "ChatMessage",
     "ToolRun",
     "BrainDecision",
+    "LLMProvider",
+    "ProjectLLMPolicy",
 ]

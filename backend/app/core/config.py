@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     LOCAL_LLM_BASE_URL: str | None = None
     LOCAL_LLM_MODEL: str | None = None
     LOCAL_LLM_TIMEOUT_S: float = 30.0
+    OLLAMA_BASE_URL: str | None = "http://localhost:11434"
+    OLLAMA_MODEL: str | None = "gemma"
     NOTIFY_PROVIDER: str = "off"
     NTFY_URL: str = "https://ntfy.sh"
     NTFY_TOPIC: str | None = None
