@@ -46,6 +46,7 @@ Date: 2026-02-09
 
 ## Ops Summary
 - `GET /ops/summary` for a single-screen operational snapshot
+- `GET /ops/next` for the next-best action
 
 ## Curl Examples
 ```bash
@@ -56,6 +57,9 @@ curl http://127.0.0.1:8000/status
 ```
 ```bash
 curl http://127.0.0.1:8000/ops/summary
+```
+```bash
+curl http://127.0.0.1:8000/ops/next
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/brain/dispatch \\
@@ -71,6 +75,16 @@ curl -X POST http://127.0.0.1:8000/ingest/assignment \\
 curl -X POST http://127.0.0.1:8000/alerts/test \\
   -H "Content-Type: application/json" \\
   -d '{"title":"Test Alert","message":"Notifications online","click_url":"https://ntfy.sh"}'
+```
+```bash
+curl -X POST http://127.0.0.1:8000/chat/message \\
+  -H "Content-Type: application/json" \\
+  -d '{"message":"Give me a status summary and create a task."}'
+```
+```bash
+curl -X POST http://127.0.0.1:8000/actions/execute \\
+  -H "Content-Type: application/json" \\
+  -d '{"tool_run_id":1,"approved":true}'
 ```
 
 ## Configuration

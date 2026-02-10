@@ -7,6 +7,8 @@ from app.api.routes.ingest_blackboard import router as ingest_blackboard_router
 from app.api.routes.ingest_assignment import router as ingest_assignment_router
 from app.api.routes.alerts import router as alerts_router
 from app.api.routes.ops import router as ops_router
+from app.api.routes.ops_next import router as ops_next_router
+from app.api.routes.chat import router as chat_router
 from app.core.config import get_settings
 
 
@@ -29,6 +31,8 @@ def create_app() -> FastAPI:
     app.include_router(ingest_assignment_router, prefix=settings.API_PREFIX)
     app.include_router(alerts_router, prefix=settings.API_PREFIX)
     app.include_router(ops_router, prefix=settings.API_PREFIX)
+    app.include_router(ops_next_router, prefix=settings.API_PREFIX)
+    app.include_router(chat_router, prefix=settings.API_PREFIX)
     return app
 
 

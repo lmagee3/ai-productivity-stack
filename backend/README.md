@@ -41,9 +41,14 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 
 ## Ops
 - `GET /ops/summary` returns an aggregated operational snapshot
+- `GET /ops/next` returns the next best action plus alternates
 
 ## Alerts
 - `POST /alerts/test` sends a test notification (allowed to send)
 
 ## Student Ops
 - `POST /ingest/assignment` stores a manual assignment and returns urgency bucket
+
+## Chat
+- `POST /chat/message` sends a message and returns proposed actions
+- `POST /actions/execute` executes approved actions only

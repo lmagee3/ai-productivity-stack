@@ -228,3 +228,92 @@ h1 {
 body[data-theme="crt"] .theme-toggle button.active {
   color: #001f0d;
 }
+
+.chat-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 2fr 1fr;
+}
+
+@media (max-width: 900px) {
+  .chat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chat-window {
+  background: var(--panel);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 16px;
+  min-height: 220px;
+  display: grid;
+  gap: 12px;
+}
+
+.chat-bubble {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+}
+
+.chat-bubble.user {
+  border-left: 3px solid var(--accent);
+}
+
+.chat-bubble.assistant {
+  border-left: 3px solid var(--accent-2);
+}
+
+.chat-role {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.chat-input button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action-buttons button {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.75rem;
+  cursor: pointer;
+}

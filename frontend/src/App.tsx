@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchHealth, type HealthStatus } from "./health";
 import { fetchOpsSummary, type OpsSummary } from "./ops";
+import { fetchOpsNext, type OpsNext } from "./ops-next";
+import { executeAction, sendChatMessage, type ProposedAction } from "./chat";
 
 const STATUS_LABELS: Record<HealthStatus["status"], string> = {
   ok: "Online",
@@ -14,8 +16,14 @@ export default function App() {
     checkedAt: new Date().toISOString(),
   });
   const [ops, setOps] = useState<OpsSummary | null>(null);
+  const [opsNext, setOpsNext] = useState<OpsNext | null>(null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<"dark" | "light" | "crt">("dark");
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [input, setInput] = useState("");
+  const [actions, setActions] = useState<ProposedAction[]>([]);
+  const [activity, setActivity] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -23,9 +31,11 @@ export default function App() {
       setLoading(true);
       const result = await fetchHealth();
       const summary = await fetchOpsSummary();
+      const next = await fetchOpsNext();
       if (active) {
         setHealth(result);
         setOps(summary);
+        setOpsNext(next);
         setLoading(false);
       }
     };
@@ -124,6 +134,156 @@ export default function App() {
               </div>
             </div>
           )}
+        </section>
+
+        <section className="panel">
+          <h2>Next Best Action</h2>
+          {!opsNext ? (
+            <p className="meta">Loading next action...</p>
+          ) : (
+            <div className="panel-grid">
+              <div className="panel-card">
+                <p className="label">Next</p>
+                {opsNext.next ? (
+                  <>
+                    <p className="value">{opsNext.next.title}</p>
+                    <p className="meta">
+                      {opsNext.next.urgency} · {opsNext.next.source}
+                    </p>
+                    <p className="meta">{opsNext.next.reason}</p>
+                  </>
+                ) : (
+                  <p className="meta">No tasks yet.</p>
+                )}
+              </div>
+              <div className="panel-card">
+                <p className="label">Alternates</p>
+                <ul className="list">
+                  {opsNext.alternates.map((alt) => (
+                    <li key={alt.id}>
+                      {alt.title} · {alt.urgency}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="panel">
+          <h2>Local Brain Chat</h2>
+          <div className="chat-grid">
+            <div className="chat-column">
+              <div className="chat-window">
+                {messages.length === 0 ? (
+                  <p className="meta">Start a conversation to see responses.</p>
+                ) : (
+                  messages.map((msg, idx) => (
+                    <div key={idx} className={`chat-bubble ${msg.role}`}>
+                      <span className="chat-role">{msg.role}</span>
+                      <p>{msg.content}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+              <form
+                className="chat-input"
+                onSubmit={async (event) => {
+                  event.preventDefault();
+                  if (!input.trim()) return;
+                  const nextMessage = input.trim();
+                  setMessages((prev) => [...prev, { role: "user", content: nextMessage }]);
+                  setInput("");
+                  try {
+                    const response = await sendChatMessage(nextMessage, sessionId ?? undefined);
+                    setSessionId(response.session_id);
+                    setMessages((prev) => [
+                      ...prev,
+                      { role: "assistant", content: response.assistant_message },
+                    ]);
+                    setActions((prev) => [...prev, ...response.proposed_actions]);
+                  } catch (err) {
+                    setActivity((prev) => [
+                      ...prev,
+                      "Chat error: failed to reach backend.",
+                    ]);
+                  }
+                }}
+              >
+                <input
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="Ask MAGE to summarize, create a task, or send a notification..."
+                />
+                <button type="submit">Send</button>
+              </form>
+            </div>
+
+            <div className="chat-column">
+              <div className="panel-card">
+                <p className="label">Proposed Actions</p>
+                {actions.length === 0 ? (
+                  <p className="meta">No proposed actions yet.</p>
+                ) : (
+                  <ul className="list">
+                    {actions.map((action) => (
+                      <li key={action.id}>
+                        <strong>{action.tool_name}</strong>
+                        <div className="meta">Status: {action.status}</div>
+                        <div className="action-buttons">
+                          <button
+                            onClick={async () => {
+                              const result = await executeAction(action.id, true);
+                              setActivity((prev) => [
+                                ...prev,
+                                `Executed ${action.tool_name}: ${result.status}`,
+                              ]);
+                              setActions((prev) =>
+                                prev.map((item) =>
+                                  item.id === action.id ? { ...item, status: result.status } : item
+                                )
+                              );
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const result = await executeAction(action.id, false);
+                              setActivity((prev) => [
+                                ...prev,
+                                `Rejected ${action.tool_name}: ${result.status}`,
+                              ]);
+                              setActions((prev) =>
+                                prev.map((item) =>
+                                  item.id === action.id ? { ...item, status: result.status } : item
+                                )
+                              );
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="panel-card">
+                <p className="label">Activity Log</p>
+                {activity.length === 0 ? (
+                  <p className="meta">No activity yet.</p>
+                ) : (
+                  <ul className="list">
+                    {activity.slice(-5).map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
         </section>
       </section>
     </main>
