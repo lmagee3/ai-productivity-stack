@@ -25,6 +25,15 @@ export type ExecuteActionResponse = {
   tool_run_id?: number;
 };
 
+export type FileScanResponse = {
+  scanned: number;
+  hot_files: Array<Record<string, unknown>>;
+  due_signals: Array<Record<string, unknown>>;
+  stale_candidates: Array<Record<string, unknown>>;
+  junk_candidates: Array<Record<string, unknown>>;
+  proposed_tasks: Array<Record<string, unknown>>;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 export async function sendChatMessage(
@@ -55,4 +64,26 @@ export async function executeAction(
     throw new Error(`Execute failed: ${res.status}`);
   }
   return (await res.json()) as ExecuteActionResponse;
+}
+
+export async function scanFiles(): Promise<FileScanResponse> {
+  const res = await fetch(`${API_BASE_URL}/tools/files/scan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "scoped",
+      paths: ["~/Documents/School", "~/Desktop/MAGE"],
+      options: {
+        include_exts: ["pdf", "docx", "md", "txt", "pptx", "xlsx", "py", "js", "ts", "tsx"],
+        exclude_dirs: ["node_modules", ".git", ".venv", "dist", "build", "__pycache__"],
+        max_file_mb: 2,
+        read_text: true,
+        max_chars: 12000,
+      },
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Scan failed: ${res.status}`);
+  }
+  return (await res.json()) as FileScanResponse;
 }

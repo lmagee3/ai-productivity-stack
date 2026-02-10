@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchHealth, type HealthStatus } from "./health";
 import { fetchOpsSummary, type OpsSummary } from "./ops";
 import { fetchOpsNext, type OpsNext } from "./ops-next";
-import { executeAction, sendChatMessage, type ProposedAction } from "./chat";
+import { executeAction, scanFiles, sendChatMessage, type ProposedAction } from "./chat";
 
 const STATUS_LABELS: Record<HealthStatus["status"], string> = {
   ok: "Online",
@@ -24,6 +24,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [actions, setActions] = useState<ProposedAction[]>([]);
   const [activity, setActivity] = useState<string[]>([]);
+  const [scanSummary, setScanSummary] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -216,7 +217,27 @@ export default function App() {
                   placeholder="Ask MAGE to summarize, create a task, or send a notification..."
                 />
                 <button type="submit">Send</button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const result = await scanFiles();
+                      setScanSummary(
+                        `Scanned ${result.scanned} files · ${result.due_signals.length} due signals · ${result.proposed_tasks.length} proposed tasks`
+                      );
+                      setActivity((prev) => [
+                        ...prev,
+                        `Scan complete: ${result.scanned} files`,
+                      ]);
+                    } catch (err) {
+                      setActivity((prev) => [...prev, "Scan failed."]);
+                    }
+                  }}
+                >
+                  Scan
+                </button>
               </form>
+              {scanSummary ? <p className="meta">{scanSummary}</p> : null}
             </div>
 
             <div className="chat-column">
