@@ -48,8 +48,10 @@ class LocalProvider:
     def __init__(self) -> None:
         settings = get_settings()
         base = settings.LOCAL_LLM_BASE_URL or settings.OLLAMA_BASE_URL
-        if base and not base.endswith("/v1"):
-            base = f"{base.rstrip('/')}/v1"
+        if base:
+            base = base.rstrip("/")
+            if not base.endswith("/v1"):
+                base = f"{base}/v1"
         self.base_url = base
         self.model = settings.LOCAL_LLM_MODEL or settings.OLLAMA_MODEL or "gemma"
         self.timeout = settings.LOCAL_LLM_TIMEOUT_S
