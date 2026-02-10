@@ -1,4 +1,4 @@
-.PHONY: setup dev backend frontend health verify verify-offline
+.PHONY: setup dev backend frontend health verify verify-offline all
 
 setup:
 	python3 -m venv backend/.venv
@@ -8,6 +8,9 @@ dev:
 	./shell/dev-backend.sh & \
 	./shell/dev-frontend.sh & \
 	wait
+
+all:
+	./shell/dev-all.sh
 
 backend:
 	./shell/dev-backend.sh

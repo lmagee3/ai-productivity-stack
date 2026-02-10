@@ -16,10 +16,12 @@ Local-first AI productivity system.
 2. Frontend: `./shell/dev-frontend.sh`
 3. Health check: `./shell/healthcheck.sh`
 4. Migrations: `cd backend && alembic upgrade head`
+5. All-in-one: `./shell/dev-all.sh`
 
 ## Makefile
 - `make setup`
 - `make dev`
+- `make all`
 - `make backend`
 - `make frontend`
 - `make health`
