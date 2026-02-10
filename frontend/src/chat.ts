@@ -73,13 +73,13 @@ export async function executeAction(
   return (await res.json()) as ExecuteActionResponse;
 }
 
-export async function scanFiles(): Promise<FileScanResponse> {
+export async function scanFiles(paths: string[] = ["~/Desktop"]): Promise<FileScanResponse> {
   const res = await fetch(`${API_BASE_URL}/tools/files/scan`, {
     method: "POST",
     headers: buildHeaders(),
     body: JSON.stringify({
       mode: "scoped",
-      paths: ["~/Documents/School", "~/Desktop/MAGE"],
+      paths,
       options: {
         include_exts: ["pdf", "docx", "md", "txt", "pptx", "xlsx", "py", "js", "ts", "tsx"],
         exclude_dirs: ["node_modules", ".git", ".venv", "dist", "build", "__pycache__"],

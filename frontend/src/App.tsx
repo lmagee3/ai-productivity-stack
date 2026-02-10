@@ -68,7 +68,7 @@ export default function App() {
 
   const handleScan = async (trigger: "auto" | "button") => {
     try {
-      const result = await scanFiles();
+      const result = await scanFiles(["~/Desktop"]);
       setScanSummary(
         `Scanned ${result.scanned} files · ${result.due_signals.length} due signals · ${result.proposed_tasks.length} proposed tasks`
       );
@@ -78,12 +78,11 @@ export default function App() {
           role: "assistant",
           content: [
             "Scan results:",
-            formatList("Due signals", result.due_signals as Array<{ path?: string }>),
-            formatList("Proposed tasks", result.proposed_tasks as Array<{ title?: string }>),
-            formatList("Hot files", result.hot_files as Array<{ path?: string }>),
-            formatList("Stale files", result.stale_candidates as Array<{ path?: string }>),
-            formatList("Junk candidates", result.junk_candidates as Array<{ path?: string }>),
-          ].join("\n"),
+            `🔥 Due Signals: ${formatList(\"\", result.due_signals as Array<{ path?: string }>)}`,
+            `📌 Proposed Tasks: ${formatList(\"\", result.proposed_tasks as Array<{ title?: string }>)}`,
+            `🗂 Hot Files: ${formatList(\"\", result.hot_files as Array<{ path?: string }>)}`,
+            `🧹 Stale/Junk: ${formatList(\"\", [...(result.stale_candidates as Array<{ path?: string }>), ...(result.junk_candidates as Array<{ path?: string }>)] )}`,
+          ].join(\"\\n\"),
         },
       ]);
       setActivity((prev) => [...prev, `Scan ${trigger}: ${result.scanned} files`]);
@@ -225,7 +224,7 @@ export default function App() {
                   event.preventDefault();
                   if (!input.trim()) return;
                   const nextMessage = input.trim();
-                  const wantsScan = /scan|files|file|folder/i.test(nextMessage);
+                  const wantsScan = /scan|files|file|folder|desktop|check my stuff/i.test(nextMessage);
                   setMessages((prev) => [...prev, { role: "user", content: nextMessage }]);
                   setInput("");
                   if (wantsScan) {
@@ -259,7 +258,7 @@ export default function App() {
                     await handleScan("button");
                   }}
                 >
-                  Scan
+                  Scan Desktop
                 </button>
               </form>
               {scanSummary ? <p className="meta">{scanSummary}</p> : null}
