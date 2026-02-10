@@ -50,53 +50,60 @@ Date: 2026-02-09
 
 ## Curl Examples
 ```bash
-curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/health -H "X-API-Key: YOUR_API_KEY"
 ```
 ```bash
-curl http://127.0.0.1:8000/status
+curl http://127.0.0.1:8000/status -H "X-API-Key: YOUR_API_KEY"
 ```
 ```bash
-curl http://127.0.0.1:8000/ops/summary
+curl http://127.0.0.1:8000/ops/summary -H "X-API-Key: YOUR_API_KEY"
 ```
 ```bash
-curl http://127.0.0.1:8000/ops/next
+curl http://127.0.0.1:8000/ops/next -H "X-API-Key: YOUR_API_KEY"
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/brain/dispatch \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"content":"Review CS101 assignment due Friday."}'
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/ingest/assignment \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"title":"Essay draft","due_date":"2026-02-12T17:00:00Z","course":"ENG200","url":"https://example.com"}'
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/alerts/test \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"title":"Test Alert","message":"Notifications online","click_url":"https://ntfy.sh"}'
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/chat/message \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"message":"Give me a status summary and create a task."}'
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/actions/execute \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"tool_run_id":1,"approved":true}'
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/brain/chat \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"message":"What is my next best action?"}'
 ```
 ```bash
-curl http://127.0.0.1:8000/brain/providers
+curl http://127.0.0.1:8000/brain/providers -H "X-API-Key: YOUR_API_KEY"
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/brain/recommend \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"message":"Summarize my current status","project":"mage"}'
 ```
 

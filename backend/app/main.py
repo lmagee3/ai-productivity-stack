@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends
 from app.api.routes.brain import router as brain_router
 from app.api.routes.health import router as health_router
 from app.api.routes.status import router as status_router
@@ -11,6 +12,7 @@ from app.api.routes.ops_next import router as ops_next_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.brain_chat import router as brain_chat_router
 from app.api.routes.brain_registry import router as brain_registry_router
+from app.core.security import require_api_key
 from app.core.config import get_settings
 
 
@@ -26,17 +28,18 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(health_router, prefix=settings.API_PREFIX)
-    app.include_router(status_router, prefix=settings.API_PREFIX)
-    app.include_router(brain_router, prefix=settings.API_PREFIX)
-    app.include_router(ingest_blackboard_router, prefix=settings.API_PREFIX)
-    app.include_router(ingest_assignment_router, prefix=settings.API_PREFIX)
-    app.include_router(alerts_router, prefix=settings.API_PREFIX)
-    app.include_router(ops_router, prefix=settings.API_PREFIX)
-    app.include_router(ops_next_router, prefix=settings.API_PREFIX)
-    app.include_router(chat_router, prefix=settings.API_PREFIX)
-    app.include_router(brain_chat_router, prefix=settings.API_PREFIX)
-    app.include_router(brain_registry_router, prefix=settings.API_PREFIX)
+    deps = [Depends(require_api_key)]
+    app.include_router(health_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(status_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(brain_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(ingest_blackboard_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(ingest_assignment_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(alerts_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(ops_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(ops_next_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(chat_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(brain_chat_router, prefix=settings.API_PREFIX, dependencies=deps)
+    app.include_router(brain_registry_router, prefix=settings.API_PREFIX, dependencies=deps)
     return app
 
 

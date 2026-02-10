@@ -10,6 +10,7 @@
 
 ## Configuration
 Settings are loaded from `.env` in `backend/` (see `.env.example`).
+Add `API_KEY` in `.env` and send requests with `X-API-Key`.
 
 ### LLM settings
 - `LLM_DEFAULT_PROVIDER=local`

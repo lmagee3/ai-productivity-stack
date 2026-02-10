@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     DB_PATH: str = "mage.db"
     API_PREFIX: str = ""
     NOTION_TOKEN: str | None = None
+    API_KEY: str | None = None
     LLM_DEFAULT_PROVIDER: str = "local"
     LOCAL_LLM_BASE_URL: str | None = None
     LOCAL_LLM_MODEL: str | None = None
