@@ -63,7 +63,7 @@ class LocalProvider:
         start_time = time.monotonic()
         try:
             response = httpx.post(
-                f"{self.base_url.rstrip('/')}/v1/chat/completions",
+                f"{self.base_url.rstrip('/')}/chat/completions",
                 json={
                     "model": self.model,
                     "messages": [
