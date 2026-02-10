@@ -60,3 +60,6 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 - `POST /brain/chat` routes intent, gathers context, and logs decisions (approval-first)
 - `GET /brain/providers` lists registered LLM providers
 - `POST /brain/recommend` returns a rule-based provider recommendation
+
+## Tools
+- `POST /tools/files/scan` scans files (read-only, scoped)

@@ -106,6 +106,12 @@ curl -X POST http://127.0.0.1:8000/brain/recommend \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -d '{"message":"Summarize my current status","project":"mage"}'
 ```
+```bash
+curl -X POST http://127.0.0.1:8000/tools/files/scan \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -d '{"mode":"scoped","paths":["~/Documents/School","~/Desktop/MAGE"],"options":{"include_exts":["pdf","docx","md","txt","pptx","xlsx","py","js","ts","tsx"],"exclude_dirs":["node_modules",".git",".venv","dist","build","__pycache__"],"max_file_mb":2,"read_text":true,"max_chars":12000}}'
+```
 
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
