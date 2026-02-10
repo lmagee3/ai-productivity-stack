@@ -1,4 +1,5 @@
-import { get, type ApiError } from "./api/client";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_KEY = import.meta.env.VITE_API_KEY as string | undefined;
 
 export type ChatMessage = {
   role: "user" | "assistant";
@@ -34,7 +35,13 @@ export type FileScanResponse = {
   proposed_tasks: Array<Record<string, unknown>>;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+function buildHeaders() {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  return headers;
+}
 
 export async function sendChatMessage(
   message: string,
@@ -42,7 +49,7 @@ export async function sendChatMessage(
 ): Promise<ChatResponse> {
   const res = await fetch(`${API_BASE_URL}/chat/message`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders(),
     body: JSON.stringify({ message, session_id: sessionId ?? null }),
   });
   if (!res.ok) {
@@ -57,7 +64,7 @@ export async function executeAction(
 ): Promise<ExecuteActionResponse> {
   const res = await fetch(`${API_BASE_URL}/actions/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders(),
     body: JSON.stringify({ tool_run_id: toolRunId, approved }),
   });
   if (!res.ok) {
@@ -69,7 +76,7 @@ export async function executeAction(
 export async function scanFiles(): Promise<FileScanResponse> {
   const res = await fetch(`${API_BASE_URL}/tools/files/scan`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders(),
     body: JSON.stringify({
       mode: "scoped",
       paths: ["~/Documents/School", "~/Desktop/MAGE"],

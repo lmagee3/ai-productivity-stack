@@ -60,6 +60,38 @@ export default function App() {
     localStorage.setItem("mage_theme", theme);
   }, [theme]);
 
+  const formatList = (label: string, items: Array<{ path?: string; title?: string }>) => {
+    if (items.length === 0) return `${label}: none`;
+    const lines = items.slice(0, 4).map((item) => item.path || item.title || "");
+    return `${label}: ${lines.join(" · ")}${items.length > 4 ? " …" : ""}`;
+  };
+
+  const handleScan = async (trigger: "auto" | "button") => {
+    try {
+      const result = await scanFiles();
+      setScanSummary(
+        `Scanned ${result.scanned} files · ${result.due_signals.length} due signals · ${result.proposed_tasks.length} proposed tasks`
+      );
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: [
+            "Scan results:",
+            formatList("Due signals", result.due_signals as Array<{ path?: string }>),
+            formatList("Proposed tasks", result.proposed_tasks as Array<{ title?: string }>),
+            formatList("Hot files", result.hot_files as Array<{ path?: string }>),
+            formatList("Stale files", result.stale_candidates as Array<{ path?: string }>),
+            formatList("Junk candidates", result.junk_candidates as Array<{ path?: string }>),
+          ].join("\n"),
+        },
+      ]);
+      setActivity((prev) => [...prev, `Scan ${trigger}: ${result.scanned} files`]);
+    } catch (err) {
+      setActivity((prev) => [...prev, "Scan failed."]);
+    }
+  };
+
   return (
     <main className="shell">
       <section className="card">
@@ -193,8 +225,12 @@ export default function App() {
                   event.preventDefault();
                   if (!input.trim()) return;
                   const nextMessage = input.trim();
+                  const wantsScan = /scan|files|file|folder/i.test(nextMessage);
                   setMessages((prev) => [...prev, { role: "user", content: nextMessage }]);
                   setInput("");
+                  if (wantsScan) {
+                    void handleScan("auto");
+                  }
                   try {
                     const response = await sendChatMessage(nextMessage, sessionId ?? undefined);
                     setSessionId(response.session_id);
@@ -220,18 +256,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={async () => {
-                    try {
-                      const result = await scanFiles();
-                      setScanSummary(
-                        `Scanned ${result.scanned} files · ${result.due_signals.length} due signals · ${result.proposed_tasks.length} proposed tasks`
-                      );
-                      setActivity((prev) => [
-                        ...prev,
-                        `Scan complete: ${result.scanned} files`,
-                      ]);
-                    } catch (err) {
-                      setActivity((prev) => [...prev, "Scan failed."]);
-                    }
+                    await handleScan("button");
                   }}
                 >
                   Scan
