@@ -52,3 +52,6 @@ SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
 ## Chat
 - `POST /chat/message` sends a message and returns proposed actions
 - `POST /actions/execute` executes approved actions only
+
+## Brain Chat
+- `POST /brain/chat` routes intent, gathers context, and logs decisions (approval-first)
