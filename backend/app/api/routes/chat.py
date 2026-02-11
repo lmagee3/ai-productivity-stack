@@ -58,7 +58,11 @@ def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
         session.refresh(user_msg)
 
         assistant_text = provider.generate(
-            "You are a concise assistant. Respond briefly and safely.\n\n" + payload.message
+            "You are the module_09 assistant. Respond briefly and safely. "
+            "This system can run read-only file scans via tools. "
+            "Do not claim you cannot access local files; instead confirm the scan request "
+            "or ask which folder to scan. Do not execute destructive actions.\n\n"
+            + payload.message
         )
         assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=assistant_text)
         session.add(assistant_msg)
