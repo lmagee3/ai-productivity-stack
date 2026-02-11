@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.api.routes.ops import ops_summary
 from app.core.database import SessionLocal
+from app.core.execution_policy import enforce_tool_execution, require_allowed
 from app.models.task import Task
 from app.services.notifications import notify_critical
 
@@ -46,7 +47,9 @@ def validate_tool_input(tool_name: str, input_json: str) -> dict[str, Any]:
     raise ValueError("tool_not_allowed")
 
 
-def execute_tool(tool_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
+def execute_tool(tool_name: str, input_data: dict[str, Any], approved: bool = False) -> dict[str, Any]:
+    require_allowed(enforce_tool_execution(tool_name, approved=approved))
+
     if tool_name == "file.search":
         return {"status": "error", "message": "file.search not enabled in v1.3"}
     if tool_name == "ops.summary":
@@ -75,6 +78,8 @@ def execute_tool(tool_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
             message=input_data["message"],
             click_url=input_data.get("click_url"),
             dry_run=False,
+            approved_network=approved,
+            actor="tool",
         )
         return result.__dict__
     raise ValueError("tool_not_allowed")

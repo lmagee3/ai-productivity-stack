@@ -7,10 +7,11 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.core.database import SessionLocal
+from app.core.execution_policy import enforce_tool_execution
 from app.core.llm import get_provider
 from app.models.chat import ChatMessage, ChatSession
 from app.models.tool_run import ToolRun
-from app.services.actions import propose_actions_from_message, validate_or_error, execute_tool
+from app.services.actions import execute_tool, propose_actions_from_message, validate_or_error
 
 router = APIRouter(tags=["chat"])
 
@@ -125,8 +126,15 @@ def execute_action(payload: ExecuteActionRequest) -> dict:
             session.commit()
             return {"status": "error", "message": err}
 
+        decision = enforce_tool_execution(tool_run.tool_name, approved=payload.approved)
+        if not decision.allowed:
+            tool_run.status = "error"
+            tool_run.error = f"{decision.code}: {decision.reason}"
+            session.commit()
+            return {"status": "error", "message": tool_run.error, "tool_run_id": tool_run.id}
+
         try:
-            result = execute_tool(tool_run.tool_name, data or {})
+            result = execute_tool(tool_run.tool_name, data or {}, approved=payload.approved)
             tool_run.status = "executed"
             tool_run.result_json = json.dumps(result)
             session.commit()

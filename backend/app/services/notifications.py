@@ -7,6 +7,7 @@ import httpx
 
 from app.core.config import get_settings
 from app.core.database import SessionLocal
+from app.core.execution_policy import enforce_notification_send, require_allowed
 from app.models.notification import Notification
 
 
@@ -23,18 +24,26 @@ def notify_critical(
     click_url: str | None = None,
     task_id: int | None = None,
     dry_run: bool = True,
+    approved_network: bool = False,
+    actor: str = "tool",
 ) -> NotificationResult:
     settings = get_settings()
     provider = settings.NOTIFY_PROVIDER
+
+    require_allowed(
+        enforce_notification_send(
+            provider=provider,
+            dry_run=dry_run,
+            approved_network=approved_network,
+            actor=actor,
+        )
+    )
 
     if _is_deduped(task_id, title):
         return _log(provider, task_id, title, message, "deduped")
 
     if provider == "off":
         return _log(provider, task_id, title, message, "skipped")
-
-    if provider != "ntfy":
-        return _log(provider, task_id, title, message, "error")
 
     topic = settings.NTFY_TOPIC
     if not topic:

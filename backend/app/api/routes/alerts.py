@@ -21,5 +21,7 @@ def alerts_test(payload: AlertTestRequest) -> dict:
         message=payload.message,
         click_url=payload.click_url,
         dry_run=False,
+        approved_network=True,
+        actor="alerts_test",
     )
     return {"status": "ok", "result": result.__dict__}
