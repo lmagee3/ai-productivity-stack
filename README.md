@@ -1,4 +1,4 @@
-# MAGE
+# module_09
 Local-first AI productivity system.
 
 ## Structure
@@ -106,13 +106,13 @@ curl http://127.0.0.1:8000/brain/providers -H "X-API-Key: YOUR_API_KEY"
 curl -X POST http://127.0.0.1:8000/brain/recommend \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{"message":"Summarize my current status","project":"mage"}'
+  -d '{"message":"Summarize my current status","project":"module_09"}'
 ```
 ```bash
 curl -X POST http://127.0.0.1:8000/tools/files/scan \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: YOUR_API_KEY" \\
-  -d '{"mode":"scoped","paths":["~/Documents/School","~/Desktop/MAGE"],"options":{"include_exts":["pdf","docx","md","txt","pptx","xlsx","py","js","ts","tsx"],"exclude_dirs":["node_modules",".git",".venv","dist","build","__pycache__"],"max_file_mb":2,"read_text":true,"max_chars":12000}}'
+  -d '{"mode":"scoped","paths":["~/Documents/School","~/Desktop/module_09"],"options":{"include_exts":["pdf","docx","md","txt","pptx","xlsx","py","js","ts","tsx"],"exclude_dirs":["node_modules",".git",".venv","dist","build","__pycache__"],"max_file_mb":2,"read_text":true,"max_chars":12000}}'
 ```
 
 ## Configuration

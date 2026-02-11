@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     ENV: str = "dev"
-    DB_PATH: str = "mage.db"
+    DB_PATH: str = "module_09.db"
     API_PREFIX: str = ""
     NOTION_TOKEN: str | None = None
     API_KEY: str | None = None

@@ -85,7 +85,7 @@ def brain_chat(payload: BrainChatRequest) -> BrainChatResponse:
     route_to = "codex" if use_cloud else "local"
 
     prompt = (
-        "You are the MAGE brain. Be concise and safe. Use the context to answer. "
+        "You are the module_09 brain. Be concise and safe. Use the context to answer. "
         "Do not execute actions. Summarize and propose next steps.\n\n"
         f"User message: {payload.message}\n\n"
         f"Context: {json.dumps(context)}"

@@ -112,7 +112,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem("mage_theme");
+    const stored = localStorage.getItem("module_09_theme");
     if (stored === "light" || stored === "dark" || stored === "crt") {
       setTheme(stored);
     }
@@ -120,7 +120,7 @@ export default function App() {
 
   useEffect(() => {
     document.body.dataset.theme = theme;
-    localStorage.setItem("mage_theme", theme);
+    localStorage.setItem("module_09_theme", theme);
   }, [theme]);
 
   useEffect(() => {
@@ -247,7 +247,7 @@ export default function App() {
   const briefPct = briefTotal === 0 ? 0 : Math.round((briefDone / briefTotal) * 100);
 
   return (
-    <main className="mage-shell">
+    <main className="module-shell">
       <div className="app">
         <div className="header">
           <div>
@@ -427,7 +427,7 @@ export default function App() {
                         <div className="chat-panel-header">Conversation</div>
                         <div className="chat-window">
                           {messages.length === 0 ? (
-                            <p className="meta">Ask MAGE to scan your desktop or plan your next move.</p>
+            <p className="meta">Ask module_09 to scan your desktop or plan your next move.</p>
                           ) : (
                             messages.map((msg, idx) => (
                               <div key={idx} className={`chat-bubble ${msg.role}`}>
@@ -441,7 +441,7 @@ export default function App() {
                           <input
                             value={input}
                             onChange={(event) => setInput(event.target.value)}
-                            placeholder="Ask MAGE to scan files, summarize, or plan."
+                          placeholder="Ask module_09 to scan files, summarize, or plan."
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
                                 event.preventDefault();
@@ -680,7 +680,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="brief-footer">MAGE Daily Brief · Generated {new Date().toLocaleDateString()}</div>
+            <div className="brief-footer">module_09 Daily Brief · Generated {new Date().toLocaleDateString()}</div>
           </div>
         )}
       </div>

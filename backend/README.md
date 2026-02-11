@@ -1,4 +1,4 @@
-# MAGE Backend
+# module_09 Backend
 
 ## Run locally
 1. Create a virtualenv and install deps:
@@ -26,7 +26,7 @@ Add `API_KEY` in `.env` and send requests with `X-API-Key`.
 - `NTFY_TOPIC` (required when provider is `ntfy`)
 
 ## Database
-SQLite path is configured via `DB_PATH` (defaults to `mage.db` in `backend/`).
+SQLite path is configured via `DB_PATH` (defaults to `module_09.db` in `backend/`).
 
 ### Migrations
 - `alembic upgrade head`

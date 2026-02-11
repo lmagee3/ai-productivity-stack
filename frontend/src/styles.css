@@ -89,7 +89,7 @@ body[data-theme="crt"]::before {
   border-radius: 3px;
 }
 
-.mage-shell {
+.module-shell {
   display: flex;
   justify-content: center;
   padding: 24px;
