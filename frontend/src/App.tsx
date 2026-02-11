@@ -90,6 +90,25 @@ export default function App() {
   const [activity, setActivity] = useState<string[]>([]);
   const [scanSummary, setScanSummary] = useState<string | null>(null);
   const [showScanModal, setShowScanModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [scanResult, setScanResult] = useState<{
+    due: string[];
+    tasks: string[];
+    hot: string[];
+    stale: string[];
+    junk: string[];
+  } | null>(null);
+  const [overviewPrefs, setOverviewPrefs] = useState({
+    metrics: true,
+    charts: true,
+    attack: true,
+    chat: true,
+  });
+  const [briefPrefs, setBriefPrefs] = useState({
+    news: true,
+    tasks: true,
+    scan: true,
+  });
   const [briefChecks, setBriefChecks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -125,6 +144,23 @@ export default function App() {
     document.body.dataset.theme = theme;
     localStorage.setItem("module_09_theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("module_09_prefs");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.overview) setOverviewPrefs(parsed.overview);
+        if (parsed.brief) setBriefPrefs(parsed.brief);
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("module_09_prefs", JSON.stringify({ overview: overviewPrefs, brief: briefPrefs }));
+  }, [overviewPrefs, briefPrefs]);
 
   useEffect(() => {
     const stored: Record<string, boolean> = {};
@@ -282,6 +318,7 @@ export default function App() {
             </div>
           </div>
           <div className="header-actions">
+            <button className="settings-btn" onClick={() => setShowSettings(true)}>Settings</button>
             <div className="view-toggle" role="group" aria-label="View toggle">
               <button
                 className={viewMode === "mission" ? "active" : ""}
@@ -350,6 +387,7 @@ export default function App() {
 
             {missionTab === "overview" && (
               <div className="view-panel">
+                {overviewPrefs.metrics ? (
                 <div className="metrics">
                   <div className="metric-card">
                     <div className="mc-top">
@@ -392,7 +430,9 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+              ) : null}
 
+              {overviewPrefs.charts ? (
                 <div className="charts-row">
                   <div className="chart-card">
                     <h3>By Status</h3>
@@ -413,7 +453,9 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+              ) : null}
 
+              {overviewPrefs.attack ? (
                 <div className="section-card">
                   <div className="section-header">
                     <span className="sh-icon">&#9889;</span>
@@ -440,7 +482,9 @@ export default function App() {
                     </div>
                   )}
                 </div>
+              ) : null}
 
+              {overviewPrefs.chat ? (
                 <div className="section-card">
                   <div className="section-header">
                     <span className="sh-icon">&#128736;</span>
@@ -545,6 +589,52 @@ export default function App() {
             )}
 
 
+
+            {showSettings ? (
+              <div className="scan-modal-backdrop">
+                <div className="scan-modal">
+                  <h3>Dashboard Settings</h3>
+                  <p className="meta">Toggle sections on Mission Control and Daily Brief.</p>
+                  <div className="settings-grid">
+                    <div>
+                      <div className="settings-title">Mission Control</div>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={overviewPrefs.metrics} onChange={(e) => setOverviewPrefs({ ...overviewPrefs, metrics: e.target.checked })} />
+                        Metrics
+                      </label>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={overviewPrefs.charts} onChange={(e) => setOverviewPrefs({ ...overviewPrefs, charts: e.target.checked })} />
+                        Charts
+                      </label>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={overviewPrefs.attack} onChange={(e) => setOverviewPrefs({ ...overviewPrefs, attack: e.target.checked })} />
+                        Attack Order
+                      </label>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={overviewPrefs.chat} onChange={(e) => setOverviewPrefs({ ...overviewPrefs, chat: e.target.checked })} />
+                        Chat
+                      </label>
+                    </div>
+                    <div>
+                      <div className="settings-title">Daily Brief</div>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={briefPrefs.news} onChange={(e) => setBriefPrefs({ ...briefPrefs, news: e.target.checked })} />
+                        News
+                      </label>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={briefPrefs.tasks} onChange={(e) => setBriefPrefs({ ...briefPrefs, tasks: e.target.checked })} />
+                        Tasks
+                      </label>
+                      <label className="settings-row">
+                        <input type="checkbox" checked={briefPrefs.scan} onChange={(e) => setBriefPrefs({ ...briefPrefs, scan: e.target.checked })} />
+                        Scan Signals
+                      </label>
+                    </div>
+                  </div>
+                  <button className="scan-modal-cancel" onClick={() => setShowSettings(false)}>Close</button>
+                </div>
+              </div>
+            ) : null}
             {showScanModal ? (
               <div className="scan-modal-backdrop">
                 <div className="scan-modal">
@@ -600,6 +690,7 @@ export default function App() {
             </div>
 
             <div className="brief-grid">
+              {briefPrefs.news ? (
               <div className="brief-col">
                 <div className="section">
                   <div className="section-title">News Briefing</div>
@@ -627,10 +718,12 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            ) : null}
 
+            {briefPrefs.tasks ? (
               <div className="brief-col">
                 <div className="section">
-                  <div className="section-title">Today&#39;s Attack Order</div>
+                  <div className="section-title">Today's Attack Order</div>
                   {(briefGroups.critical.length === 0 && briefGroups.today.length === 0) ? (
                     <p className="meta">No critical or today tasks yet.</p>
                   ) : (
@@ -721,6 +814,15 @@ export default function App() {
 
                 <button className="report-btn">Generate End-of-Day Report</button>
               </div>
+            ) : null}
+
+            {briefPrefs.scan && scanResult ? (
+              <div className="section">
+                <div className="section-title">Scan Signals</div>
+                <div className="news-item"><h3>Due Signals</h3><p>{scanResult.due.slice(0,3).join(" | ") || "None"}</p></div>
+                <div className="news-item"><h3>Proposed Tasks</h3><p>{scanResult.tasks.slice(0,3).join(" | ") || "None"}</p></div>
+              </div>
+            ) : null}
             </div>
 
             <div className="brief-footer">module_09 Daily Brief · Generated {new Date().toLocaleDateString()}</div>
