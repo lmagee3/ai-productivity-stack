@@ -371,7 +371,7 @@ export default function App() {
                   <span className="alert-note"> Focus on these first.</span>
                 </div>
               </div>
-            )}
+            ) : null}
 
             <div className="nav">
               {(["overview", "sprint", "timeline", "all"] as MissionTab[]).map((tab) => (
