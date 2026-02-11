@@ -183,17 +183,18 @@ export default function App() {
     }
   };
 
-  const openPicker = async (mode: 'files' | 'folders') => {
+  const openPicker = async () => {
     if (!isTauri()) {
       setActivity((prev) => [...prev, 'File picker is available in the desktop app only.']);
       return;
     }
     try {
+      setShowScanModal(false);
       const dialog = await import('@tauri-apps/plugin-dialog');
       const selection = await dialog.open({
         multiple: true,
-        directory: mode === 'folders',
-        title: mode === 'folders' ? 'Choose folders to scan' : 'Choose files to scan',
+        directory: true,
+        title: 'Choose folders to scan',
       });
       if (!selection) return;
       const paths = Array.isArray(selection) ? selection : [selection];
@@ -371,8 +372,8 @@ export default function App() {
           setShowScanModal(false);
           void handleScan(['~/Desktop']);
         }}
-        onPickFolders={() => openPicker('folders')}
-        onPickFiles={() => openPicker('files')}
+        onPickFolders={() => openPicker()}
+        
       />
     </main>
   );
