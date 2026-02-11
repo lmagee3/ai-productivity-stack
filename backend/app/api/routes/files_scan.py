@@ -109,13 +109,19 @@ def parse_due_date(text: str) -> datetime | None:
     iso_match = re.search(r"\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b", text)
     if iso_match:
         year, month, day = map(int, iso_match.groups())
-        return datetime(year, month, day, tzinfo=timezone.utc)
+        try:
+            return datetime(year, month, day, tzinfo=timezone.utc)
+        except ValueError:
+            return None
 
     us_match = re.search(r"\b(\d{1,2})[/-](\d{1,2})\b", text)
     if us_match:
         month, day = map(int, us_match.groups())
         year = datetime.now(timezone.utc).year
-        return datetime(year, month, day, tzinfo=timezone.utc)
+        try:
+            return datetime(year, month, day, tzinfo=timezone.utc)
+        except ValueError:
+            return None
 
     month_match = re.search(
         r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})\b",
@@ -140,7 +146,10 @@ def parse_due_date(text: str) -> datetime | None:
         ].index(month_str[:3].lower()) + 1
         day = int(day_str)
         year = datetime.now(timezone.utc).year
-        return datetime(year, month, day, tzinfo=timezone.utc)
+        try:
+            return datetime(year, month, day, tzinfo=timezone.utc)
+        except ValueError:
+            return None
 
     return None
 
