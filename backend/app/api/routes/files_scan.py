@@ -20,7 +20,7 @@ class ScanDenied(Exception):
 
 def parse_allowed_roots() -> list[Path]:
     settings = get_settings()
-    raw = settings.ALLOWED_SCAN_ROOTS or "~/Desktop,~/Documents"
+    raw = settings.ALLOWED_SCAN_ROOTS or "~/Desktop,~/Documents,/Volumes,/"
     roots: list[Path] = []
     for entry in raw.split(','):
         cleaned = entry.strip()

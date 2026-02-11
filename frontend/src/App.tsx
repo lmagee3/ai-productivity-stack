@@ -47,6 +47,8 @@ const NEWS: Record<NewsTab, Array<{ title: string; body: string; tone?: "up" | "
 
 const scanTriggers = /scan|files|file|folder|desktop|check my stuff|check my files|look through/i;
 
+const isTauri = () => typeof (window as any).__TAURI__ !== "undefined";
+
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString();
 }
@@ -87,6 +89,7 @@ export default function App() {
   const [actions, setActions] = useState<ProposedAction[]>([]);
   const [activity, setActivity] = useState<string[]>([]);
   const [scanSummary, setScanSummary] = useState<string | null>(null);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [briefChecks, setBriefChecks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -178,9 +181,31 @@ export default function App() {
       .join(" · ");
   };
 
-  const handleScan = async (trigger: "auto" | "button") => {
+  const handleScan = async (trigger: "auto" | "button", paths: string[] = ["~/Desktop"]) => {
+  const openPicker = async (mode: "files" | "folders") => {
+    if (!isTauri()) {
+      setActivity((prev) => [...prev, "File picker is available in the desktop app only."]);
+      return;
+    }
     try {
-      const result = await scanFiles(["~/Desktop"]);
+      const dialog = await import("@tauri-apps/api/dialog");
+      const selection = await dialog.open({
+        multiple: true,
+        directory: mode === "folders",
+        title: mode === "folders" ? "Choose folders to scan" : "Choose files to scan",
+      });
+      if (!selection) {
+        return;
+      }
+      const paths = Array.isArray(selection) ? selection : [selection];
+      await handleScan("button", paths);
+    } catch (err) {
+      setActivity((prev) => [...prev, "File picker failed."]);
+    }
+  };
+
+    try {
+      const result = await scanFiles(paths);
       setScanSummary(
         `Scanned ${result.scanned} files · ${result.due_signals.length} due signals · ${result.proposed_tasks.length} proposed tasks`
       );
@@ -519,6 +544,24 @@ export default function App() {
               </div>
             )}
 
+
+            {showScanModal ? (
+              <div className="scan-modal-backdrop">
+                <div className="scan-modal">
+                  <h3>Scan Options</h3>
+                  <p className="meta">Choose what to scan. Desktop is fast, custom lets you pick folders or files (including external drives).</p>
+                  <div className="scan-modal-actions">
+                    <button onClick={() => {
+                      setShowScanModal(false);
+                      void handleScan("button", ["~/Desktop"]);
+                    }}>Scan Desktop</button>
+                    <button className="ghost" onClick={() => openPicker("folders")}>Choose Folders</button>
+                    <button className="ghost" onClick={() => openPicker("files")}>Choose Files</button>
+                  </div>
+                  <button className="scan-modal-cancel" onClick={() => setShowScanModal(false)}>Cancel</button>
+                </div>
+              </div>
+            ) : null}
             {missionTab !== "overview" && (
               <div className="section-card">
                 <div className="section-header">
