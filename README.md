@@ -117,6 +117,7 @@ curl -X POST http://127.0.0.1:8000/tools/files/scan \\
 
 ## Configuration
 - Backend settings live in `backend/.env` (copy from `backend/.env.example`)
+- File scan permissions: add `ALLOWED_SCAN_ROOTS` in `backend/.env` (default: `~/Desktop,~/Documents`).
 - Frontend settings live in `frontend/.env` (copy from `frontend/.env.example`)
 
 ## Desktop (Tauri)

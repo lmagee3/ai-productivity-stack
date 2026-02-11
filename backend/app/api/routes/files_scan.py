@@ -7,10 +7,38 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.core.config import get_settings
+
 router = APIRouter(tags=["tools"])
+
+class ScanDenied(Exception):
+    pass
+
+
+def parse_allowed_roots() -> list[Path]:
+    settings = get_settings()
+    raw = settings.ALLOWED_SCAN_ROOTS or "~/Desktop,~/Documents"
+    roots: list[Path] = []
+    for entry in raw.split(','):
+        cleaned = entry.strip()
+        if not cleaned:
+            continue
+        roots.append(expand_path(cleaned))
+    return roots
+
+
+def ensure_allowed(path: Path, roots: list[Path]) -> bool:
+    for root in roots:
+        try:
+            path.relative_to(root)
+            return True
+        except ValueError:
+            continue
+    return False
+
 
 TEXT_EXTS = {
     "md",
@@ -133,7 +161,7 @@ def urgency_bucket(due_date: datetime | None) -> str:
     return "later"
 
 
-def scan_paths(paths: list[str], options: ScanOptions) -> tuple[int, list[dict[str, Any]], list[FileSignal], list[dict[str, Any]], list[dict[str, Any]], list[ProposedTask]]:
+def scan_paths(paths: list[str], options: ScanOptions, roots: list[Path]) -> tuple[int, list[dict[str, Any]], list[FileSignal], list[dict[str, Any]], list[dict[str, Any]], list[ProposedTask]]:
     scanned = 0
     hot_files: list[dict[str, Any]] = []
     due_signals: list[FileSignal] = []
@@ -153,6 +181,8 @@ def scan_paths(paths: list[str], options: ScanOptions) -> tuple[int, list[dict[s
         base = expand_path(raw)
         if not base.exists():
             continue
+        if not ensure_allowed(base, roots):
+            raise ScanDenied(f"Path not allowed: {base}")
         if base.is_file():
             file_paths = [base]
         else:
@@ -223,9 +253,16 @@ def scan_paths(paths: list[str], options: ScanOptions) -> tuple[int, list[dict[s
 
 @router.post("/tools/files/scan", response_model=ScanResponse)
 def files_scan(payload: ScanRequest) -> ScanResponse:
-    scanned, hot_files, due_signals, stale_candidates, junk_candidates, proposed_tasks = scan_paths(
-        payload.paths, payload.options
-    )
+    roots = parse_allowed_roots()
+    try:
+        scanned, hot_files, due_signals, stale_candidates, junk_candidates, proposed_tasks = scan_paths(
+            payload.paths, payload.options, roots
+        )
+    except ScanDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{exc}. Add the folder to ALLOWED_SCAN_ROOTS and grant OS access if needed.",
+        )
     return ScanResponse(
         scanned=scanned,
         hot_files=hot_files,

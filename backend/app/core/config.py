@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     NOTIFY_PROVIDER: str = "off"
     NTFY_URL: str = "https://ntfy.sh"
     NTFY_TOPIC: str | None = None
+    ALLOWED_SCAN_ROOTS: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
