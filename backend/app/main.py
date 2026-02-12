@@ -16,6 +16,7 @@ from app.api.routes.files_scan import router as files_scan_router
 from app.api.routes.news import router as news_router
 from app.api.routes.ingest_connectors import router as ingest_connectors_router
 from app.core.security import require_api_key
+from app.core.automation_runtime import start_runtime, stop_runtime
 from app.core.config import get_settings
 
 
@@ -46,6 +47,15 @@ def create_app() -> FastAPI:
     app.include_router(files_scan_router, prefix=settings.API_PREFIX, dependencies=deps)
     app.include_router(news_router, prefix=settings.API_PREFIX, dependencies=deps)
     app.include_router(ingest_connectors_router, prefix=settings.API_PREFIX, dependencies=deps)
+
+    @app.on_event("startup")
+    def _startup_runtime() -> None:
+        start_runtime()
+
+    @app.on_event("shutdown")
+    def _shutdown_runtime() -> None:
+        stop_runtime()
+
     return app
 
 

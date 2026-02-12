@@ -10,7 +10,7 @@ type OverviewPrefs = {
 type BriefPrefs = {
   news: boolean;
   tasks: boolean;
-  scan: boolean;
+  markets: boolean;
 };
 
 type Props = {
@@ -94,10 +94,10 @@ export function SettingsModal({
             <label className="settings-row">
               <input
                 type="checkbox"
-                checked={briefPrefs.scan}
-                onChange={(e) => onBriefChange({ ...briefPrefs, scan: e.target.checked })}
+                checked={briefPrefs.markets}
+                onChange={(e) => onBriefChange({ ...briefPrefs, markets: e.target.checked })}
               />
-              Scan Signals
+              Market Ticker
             </label>
           </div>
         </div>

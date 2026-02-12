@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     EMAIL_ALLOWLIST_DOMAINS: str | None = None
     EMAIL_DENYLIST_SENDERS: str | None = None
     EMAIL_DENYLIST_SUBJECTS: str | None = None
+    BRAIN_EXECUTION_MODE: str = "assist"
+    AUTO_SCAN_ENABLED: bool = False
+    AUTO_SCAN_INTERVAL_MIN: int = 60
+    AUTO_SCAN_PATHS: str = "~/Desktop"
+    AUTO_EMAIL_SYNC_ENABLED: bool = False
+    AUTO_EMAIL_SYNC_INTERVAL_MIN: int = 60
+    AUTO_EMAIL_SYNC_LIMIT: int = 10
+    AUTO_NEWS_REFRESH_MIN: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

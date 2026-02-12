@@ -68,11 +68,15 @@ export default function App() {
   const [briefPrefs, setBriefPrefs] = useState({
     news: true,
     tasks: true,
-    scan: true,
+    markets: true,
   });
   const [newsTab, setNewsTab] = useState<'markets' | 'geopolitics' | 'tech' | 'science' | 'culture'>('markets');
   const [briefChecks, setBriefChecks] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [now, setNow] = useState(new Date());
+  const [weatherText, setWeatherText] = useState('Weather unavailable');
+  const [stocks, setStocks] = useState<Array<{ symbol: string; price: number; changePct: number }>>([]);
+  const [stocksUpdatedAt, setStocksUpdatedAt] = useState<string | null>(null);
 
   const refreshSystemData = async () => {
     setIsRefreshing(true);
@@ -113,6 +117,56 @@ export default function App() {
       active = false;
       clearInterval(interval);
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const loadWeather = async () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const resp = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=fahrenheit`
+          );
+          const data = await resp.json();
+          const temp = data?.current?.temperature_2m;
+          if (typeof temp === 'number') setWeatherText(`${Math.round(temp)}°F`);
+        } catch {
+          // leave fallback text
+        }
+      });
+    };
+    void loadWeather();
+  }, []);
+
+  useEffect(() => {
+    const symbols = ['SPY', 'QQQ', 'NVDA', 'AAPL', 'MSFT'];
+    const loadStocks = async () => {
+      try {
+        const query = symbols.join(',');
+        const resp = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${query}`);
+        const data = await resp.json();
+        const quotes = (data?.quoteResponse?.result ?? []).map((item: any) => ({
+          symbol: item.symbol,
+          price: Number(item.regularMarketPrice ?? 0),
+          changePct: Number(item.regularMarketChangePercent ?? 0),
+        })).filter((q: { symbol: string; price: number }) => q.symbol && Number.isFinite(q.price));
+        if (quotes.length > 0) {
+          setStocks(quotes);
+          setStocksUpdatedAt(new Date().toISOString());
+        }
+      } catch {
+        // keep previous quotes
+      }
+    };
+    void loadStocks();
+    const interval = setInterval(loadStocks, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -407,15 +461,34 @@ export default function App() {
   const briefTotal = briefTasks.length;
   const briefRemaining = briefTotal - briefDone;
   const briefPct = briefTotal === 0 ? 0 : Math.round((briefDone / briefTotal) * 100);
+  const burndown = useMemo(() => {
+    const points = 8;
+    const ideal = Array.from({ length: points }, (_, i) => Math.max(0, briefTotal - (briefTotal * i) / (points - 1)));
+    const doneNow = briefDone;
+    const progressSlope = points > 1 ? doneNow / (points - 1) : doneNow;
+    const actual = Array.from({ length: points }, (_, i) => Math.max(0, briefTotal - progressSlope * i));
+    return { ideal, actual };
+  }, [briefDone, briefTotal]);
+  const linePath = (values: number[]) => {
+    if (values.length === 0) return '';
+    const max = Math.max(1, briefTotal);
+    return values
+      .map((value, idx) => {
+        const x = (idx / (values.length - 1)) * 100;
+        const y = 100 - (value / max) * 100;
+        return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+      })
+      .join(' ');
+  };
 
   return (
     <main className="module-shell">
       <div className="app">
         <div className="header">
           <div>
-            <h1>◔ Mission Control</h1>
+            <h1>module_09</h1>
             <div className="header-sub">
-              Local-first command center · {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              Local time {now.toLocaleString()} · Weather {weatherText}
             </div>
           </div>
           <div className="header-actions">
@@ -440,7 +513,8 @@ export default function App() {
         </div>
 
         {viewMode === 'mission' ? (
-          <>
+          <div className="mission-layout">
+            <section className="mission-main">
             <div className="status">
               <span className={`status-dot status-${health.status}`} />
               <div>
@@ -486,33 +560,6 @@ export default function App() {
                 blackboardTotal={blackboardTotal}
                 attackOrder={attackOrder}
                 scanResult={scanResult}
-                messages={messages}
-                actions={actions}
-                activity={activity}
-                scanSummary={scanSummary}
-                isScanning={isScanning}
-                scanElapsedS={scanElapsedS}
-                onSendChat={handleChatSubmit}
-                onOpenScan={() => setShowScanModal(true)}
-                onRunScan={() => {
-                  void handleScan(scanPaths);
-                }}
-                onSyncInbox={() => {
-                  void syncInbox();
-                }}
-                onRefreshHeadlines={() => {
-                  void refreshHeadlines();
-                }}
-                onApprove={async (id) => {
-                  const result = await executeAction(id, true);
-                  setActivity((prev) => [...prev, `Executed action: ${result.status}`]);
-                }}
-                onReject={async (id) => {
-                  const result = await executeAction(id, false);
-                  setActivity((prev) => [...prev, `Rejected action: ${result.status}`]);
-                }}
-                input={input}
-                onInputChange={setInput}
               />
             )}
 
@@ -520,9 +567,9 @@ export default function App() {
               <div className="section-card">
                 <div className="section-header">
                   <span className="sh-icon">⚑</span>
-                  <h3>Sprint View</h3>
+                  <h3>Sprint Burndown</h3>
                 </div>
-                <div className="meta">Execution progress based on current ranked workload.</div>
+                <div className="meta">Ideal vs actual remaining work for current sprint.</div>
                 <div className="sp-labels" style={{ marginTop: 10 }}>
                   <span>{briefDone}/{briefTotal} tasks complete</span>
                   <span>{briefPct}%</span>
@@ -530,20 +577,15 @@ export default function App() {
                 <div className="sp-bar-wrap">
                   <div className="sp-bar-fill" style={{ width: `${briefPct}%` }} />
                 </div>
-                <div className="sug-list" style={{ marginTop: 12 }}>
-                  {attackOrder.slice(0, 8).map((task) => (
-                    <div key={`sprint-${task.id}`} className="sug-item">
-                      <div className="sug-body">
-                        <div className="sug-name">{task.title}</div>
-                        <div className="sug-meta">
-                          <span className="domain-tag">{task.source}</span>
-                          <span className={`badge badge-${task.urgency}`}>{task.urgency}</span>
-                          <span className="days-label">{task.due_at ?? 'No date'}</span>
-                        </div>
-                        <div className="sug-reason">{task.reason}</div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="burndown-graph" style={{ marginTop: 14 }}>
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="burndown-svg">
+                    <path d={linePath(burndown.ideal)} className="burndown-ideal" />
+                    <path d={linePath(burndown.actual)} className="burndown-actual" />
+                  </svg>
+                  <div className="burndown-legend">
+                    <span><i className="dot ideal" /> Ideal</span>
+                    <span><i className="dot actual" /> Actual</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -587,14 +629,85 @@ export default function App() {
                 </div>
               </div>
             )}
-          </>
+            </section>
+            <aside className="mission-chat-rail">
+              <div className="chat-panel chat-panel-stretch">
+                <div className="chat-panel-header">Local Brain Chat</div>
+                <div className="chat-window chat-window-tall">
+                  {messages.length === 0 ? (
+                    <p className="meta">Ask module_09 to scan your desktop or plan your next move.</p>
+                  ) : (
+                    messages.map((msg, idx) => (
+                      <div key={idx} className={`chat-bubble ${msg.role}`}>
+                        <span className="chat-role">{msg.role}</span>
+                        {msg.role === 'assistant' && msg.route_to ? (
+                          <span className="route-badge">{msg.route_to === 'local_fast' ? 'FAST' : msg.route_to === 'local_deep' ? 'DEEP' : msg.route_to === 'cloud_pending_approval' ? 'CLOUD PENDING APPROVAL' : msg.route_to.toUpperCase()}</span>
+                        ) : null}
+                        <p>{msg.content}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="chat-actions">
+                  <input
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    placeholder="Ask module_09 to scan files, summarize, or plan."
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void handleChatSubmit();
+                      }
+                    }}
+                  />
+                  <button onClick={() => void handleChatSubmit()}>Send</button>
+                </div>
+                {isScanning ? (
+                  <div className="scan-progress">
+                    <div className="scan-progress-bar" />
+                    <div className="meta">Scanning in progress... {scanElapsedS}s elapsed</div>
+                  </div>
+                ) : null}
+                {scanSummary ? <div className="chat-meta">{scanSummary}</div> : null}
+              </div>
+
+              <div className="chat-panel">
+                <div className="chat-panel-header">Proposed Actions</div>
+                <div className="chat-actions quick-actions">
+                  <button className="ghost" onClick={() => setShowScanModal(true)}>Run Scan</button>
+                  <button className="ghost" onClick={() => void syncInbox()}>Sync Inbox</button>
+                </div>
+                {actions.length === 0 ? (
+                  <p className="meta">No proposed actions yet.</p>
+                ) : (
+                  <ul className="list">
+                    {actions.map((action) => (
+                      <li key={action.id}>
+                        <strong>{action.tool_name}</strong>
+                        <div className="meta">Status: {action.status}</div>
+                        <div className="action-buttons">
+                          <button onClick={async () => {
+                            const result = await executeAction(action.id, true);
+                            setActivity((prev) => [...prev, `Executed action: ${result.status}`]);
+                          }}>Approve</button>
+                          <button onClick={async () => {
+                            const result = await executeAction(action.id, false);
+                            setActivity((prev) => [...prev, `Rejected action: ${result.status}`]);
+                          }}>Reject</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </aside>
+          </div>
         ) : (
           <DailyBrief
             briefPrefs={briefPrefs}
             briefGroups={briefGroups}
             briefChecks={briefChecks}
             onToggle={toggleBriefTask}
-            scanResult={scanResult ? { due: scanResult.due, tasks: scanResult.tasks } : null}
             newsTab={newsTab}
             setNewsTab={setNewsTab}
             briefDone={briefDone}
@@ -603,6 +716,8 @@ export default function App() {
             briefPct={briefPct}
             headlines={headlines}
             headlinesUpdatedAt={headlinesUpdatedAt}
+            stocks={stocks}
+            stocksUpdatedAt={stocksUpdatedAt}
           />
         )}
       </div>
@@ -626,9 +741,6 @@ export default function App() {
         onPickFolders={() => openPicker()}
         
       />
-      <div className="footer">
-        module_09 Mission Control · Powered by local brain · Synced {new Date().toLocaleString()}
-      </div>
     </main>
   );
 }

@@ -91,6 +91,7 @@ def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
 
         proposed = propose_actions_from_message(payload.message)
         proposed_actions: list[ProposedAction] = []
+        auto_exec_summaries: list[str] = []
         for action in proposed:
             tool_name = action["tool_name"]
             input_json = json.dumps(action["input"])
@@ -104,6 +105,27 @@ def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
             session.add(tool_run)
             session.commit()
             session.refresh(tool_run)
+
+            if settings.BRAIN_EXECUTION_MODE == "operate":
+                decision = enforce_tool_execution(tool_name, approved=False)
+                if decision.allowed:
+                    try:
+                        data, err = validate_or_error(tool_name, tool_run.input_json)
+                        if not err:
+                            result = execute_tool(tool_name, data or {}, approved=False)
+                            tool_run.status = "executed"
+                            tool_run.result_json = json.dumps(result)
+                            session.commit()
+                            auto_exec_summaries.append(f"{tool_name}: executed")
+                        else:
+                            tool_run.status = "error"
+                            tool_run.error = err
+                            session.commit()
+                    except Exception as exc:
+                        tool_run.status = "error"
+                        tool_run.error = str(exc)
+                        session.commit()
+
             proposed_actions.append(
                 ProposedAction(
                     id=tool_run.id,
@@ -112,6 +134,11 @@ def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
                     status=tool_run.status,
                 )
             )
+
+        if auto_exec_summaries:
+            assistant_text = f"{assistant_text}\n\nAuto-executed: " + ", ".join(auto_exec_summaries)
+            assistant_msg.content = assistant_text
+            session.commit()
 
     return ChatMessageResponse(
         session_id=session_id,

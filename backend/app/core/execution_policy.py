@@ -62,6 +62,9 @@ def enforce_file_scan(paths: list[str]) -> PolicyDecision:
 def enforce_tool_execution(tool_name: str, approved: bool) -> PolicyDecision:
     tool_policy = {
         "file.search": ("low", False),
+        "files.scan": ("low", False),
+        "email.fetch": ("low", False),
+        "news.headlines": ("low", False),
         "ops.summary": ("low", False),
         "task.create": ("medium", True),
         "notify.send": ("high", True),

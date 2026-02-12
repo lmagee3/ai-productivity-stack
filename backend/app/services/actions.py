@@ -7,10 +7,15 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError
 
 from app.api.routes.ops import ops_summary
+from app.api.routes.news import get_headlines
+from app.api.routes.files_scan import ScanOptions, scan_paths
+from app.api.routes.ingest_connectors import EmailFetchRequest, ingest_email_fetch
+from app.core.config import get_settings
 from app.core.database import SessionLocal
-from app.core.execution_policy import enforce_tool_execution, require_allowed
+from app.core.execution_policy import enforce_file_scan, enforce_tool_execution, require_allowed
 from app.models.task import Task
 from app.services.notifications import notify_critical
+from app.services.task_ingest import upsert_tasks_from_items
 
 
 class FileSearchInput(BaseModel):
@@ -19,6 +24,15 @@ class FileSearchInput(BaseModel):
 
 class OpsSummaryInput(BaseModel):
     pass
+
+
+class FilesScanInput(BaseModel):
+    paths: list[str] = Field(default_factory=list)
+
+
+class EmailFetchInput(BaseModel):
+    limit: int = Field(default=10, ge=1, le=50)
+    mailbox: str | None = None
 
 
 class TaskCreateInput(BaseModel):
@@ -40,6 +54,12 @@ def validate_tool_input(tool_name: str, input_json: str) -> dict[str, Any]:
         return FileSearchInput.model_validate(data).model_dump()
     if tool_name == "ops.summary":
         return OpsSummaryInput.model_validate(data).model_dump()
+    if tool_name == "files.scan":
+        return FilesScanInput.model_validate(data).model_dump()
+    if tool_name == "email.fetch":
+        return EmailFetchInput.model_validate(data).model_dump()
+    if tool_name == "news.headlines":
+        return {}
     if tool_name == "task.create":
         return TaskCreateInput.model_validate(data).model_dump()
     if tool_name == "notify.send":
@@ -54,6 +74,35 @@ def execute_tool(tool_name: str, input_data: dict[str, Any], approved: bool = Fa
         return {"status": "error", "message": "file.search not enabled in v1.3"}
     if tool_name == "ops.summary":
         return ops_summary()
+    if tool_name == "files.scan":
+        settings = get_settings()
+        paths = input_data.get("paths") or [p.strip() for p in settings.AUTO_SCAN_PATHS.split(",") if p.strip()] or ["~/Desktop"]
+        require_allowed(enforce_file_scan(paths))
+        scanned, hot_files, due_signals, stale_candidates, junk_candidates, proposed = scan_paths(paths, ScanOptions())
+        created = upsert_tasks_from_items(
+            [{"title": p.title, "due_date": p.due_date, "url": None} for p in proposed],
+            source="files",
+        )
+        return {
+            "status": "ok",
+            "scanned": scanned,
+            "created_tasks": created,
+            "due_signals": len(due_signals),
+            "hot_files": len(hot_files),
+            "stale_candidates": len(stale_candidates),
+            "junk_candidates": len(junk_candidates),
+        }
+    if tool_name == "email.fetch":
+        response = ingest_email_fetch(EmailFetchRequest(limit=input_data.get("limit", 10), mailbox=input_data.get("mailbox")))
+        proposed = []
+        for item in response.items:
+            for task in item.proposed_tasks:
+                proposed.append({"title": task.title, "due_date": task.due_date, "url": None})
+        created = upsert_tasks_from_items(proposed, source="email")
+        return {"status": "ok", "emails": response.count, "created_tasks": created}
+    if tool_name == "news.headlines":
+        data = get_headlines(limit=12)
+        return {"status": "ok", "headlines": len(data.headlines), "updated_at": data.updated_at}
     if tool_name == "task.create":
         task = Task(
             title=input_data["title"],
@@ -90,6 +139,12 @@ def propose_actions_from_message(message: str) -> list[dict[str, Any]]:
     lowered = message.lower()
     if "summary" in lowered or "status" in lowered:
         actions.append({"tool_name": "ops.summary", "input": {}})
+    if "scan" in lowered or "folder" in lowered or "desktop" in lowered or "files" in lowered:
+        actions.append({"tool_name": "files.scan", "input": {}})
+    if "sync inbox" in lowered or "sync gmail" in lowered or "email sync" in lowered:
+        actions.append({"tool_name": "email.fetch", "input": {}})
+    if "headlines" in lowered or "news" in lowered:
+        actions.append({"tool_name": "news.headlines", "input": {}})
     if "notify" in lowered or "alert" in lowered:
         actions.append(
             {

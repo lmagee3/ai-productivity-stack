@@ -19,7 +19,7 @@ type BriefGroups = {
 type BriefPrefs = {
   news: boolean;
   tasks: boolean;
-  scan: boolean;
+  markets: boolean;
 };
 
 type NewsTab = 'markets' | 'geopolitics' | 'tech' | 'science' | 'culture';
@@ -51,17 +51,11 @@ function classifyHeadline(title: string): NewsTab {
   return 'culture';
 }
 
-type ScanResult = {
-  due: Array<{ summary: string; priority: 'critical' | 'high' | 'medium' | 'low' }>;
-  tasks: Array<{ summary: string; priority: 'critical' | 'high' | 'medium' | 'low' }>;
-} | null;
-
 type Props = {
   briefPrefs: BriefPrefs;
   briefGroups: BriefGroups;
   briefChecks: Record<string, boolean>;
   onToggle: (id: string) => void;
-  scanResult: ScanResult;
   newsTab: NewsTab;
   setNewsTab: (tab: NewsTab) => void;
   briefDone: number;
@@ -70,6 +64,8 @@ type Props = {
   briefPct: number;
   headlines: Array<{ title: string; source: string; url: string; published_at: string | null }>;
   headlinesUpdatedAt: string | null;
+  stocks: Array<{ symbol: string; price: number; changePct: number }>;
+  stocksUpdatedAt: string | null;
 };
 
 export function DailyBrief({
@@ -77,7 +73,6 @@ export function DailyBrief({
   briefGroups,
   briefChecks,
   onToggle,
-  scanResult,
   newsTab,
   setNewsTab,
   briefDone,
@@ -86,6 +81,8 @@ export function DailyBrief({
   briefPct,
   headlines,
   headlinesUpdatedAt,
+  stocks,
+  stocksUpdatedAt,
 }: Props) {
   const badgeClass = (badge: string) => {
     const value = badge.toLowerCase();
@@ -206,6 +203,27 @@ export function DailyBrief({
                 </div>
               </div>
             </div>
+            {briefPrefs.markets ? (
+              <div className="section">
+                <div className="section-title">Market Ticker</div>
+                {stocks.length === 0 ? (
+                  <p className="meta">Waiting for market feed...</p>
+                ) : (
+                  <div className="stock-grid">
+                    {stocks.map((quote) => (
+                      <div key={quote.symbol} className="stock-item">
+                        <div className="stock-symbol">{quote.symbol}</div>
+                        <div className="stock-price">${quote.price.toFixed(2)}</div>
+                        <div className={`stock-change ${quote.changePct >= 0 ? 'up' : 'down'}`}>
+                          {quote.changePct >= 0 ? '+' : ''}{quote.changePct.toFixed(2)}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="meta">Updated {stocksUpdatedAt ? new Date(stocksUpdatedAt).toLocaleTimeString() : 'recently'}</div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -242,14 +260,6 @@ export function DailyBrief({
             </div>
 
             <button className="report-btn">Generate End-of-Day Report</button>
-          </div>
-        ) : null}
-
-        {briefPrefs.scan && scanResult ? (
-          <div className="section">
-            <div className="section-title">Scan Signals</div>
-            <div className="news-item"><h3>Due Signals</h3><p>{scanResult.due.slice(0,3).map((x) => `${x.summary} [${x.priority}]`).join(' | ') || 'None'}</p></div>
-            <div className="news-item"><h3>Proposed Tasks</h3><p>{scanResult.tasks.slice(0,3).map((x) => `${x.summary} [${x.priority}]`).join(' | ') || 'None'}</p></div>
           </div>
         ) : null}
       </div>

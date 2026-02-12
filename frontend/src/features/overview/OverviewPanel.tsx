@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import type { ProposedAction } from '../../chat';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Chart, DoughnutController, BarController, ArcElement, BarElement, CategoryScale, LinearScale, Legend, Tooltip } from 'chart.js';
+
+Chart.register(DoughnutController, BarController, ArcElement, BarElement, CategoryScale, LinearScale, Legend, Tooltip);
 
 type OverviewPrefs = {
   metrics: boolean;
@@ -33,21 +35,6 @@ type Props = {
   blackboardTotal: number;
   attackOrder: OpsNextItem[];
   scanResult: ScanResult;
-  messages: Array<{ role: 'user' | 'assistant'; content: string; route_to?: string }>;
-  actions: ProposedAction[];
-  activity: string[];
-  scanSummary: string | null;
-  isScanning: boolean;
-  scanElapsedS: number;
-  onSendChat: () => void;
-  onOpenScan: () => void;
-  onRunScan: () => void;
-  onSyncInbox: () => void;
-  onRefreshHeadlines: () => void;
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
-  input: string;
-  onInputChange: (value: string) => void;
 };
 
 export function OverviewPanel({
@@ -58,33 +45,139 @@ export function OverviewPanel({
   blackboardTotal,
   attackOrder,
   scanResult,
-  messages,
-  actions,
-  activity,
-  scanSummary,
-  isScanning,
-  scanElapsedS,
-  onSendChat,
-  onOpenScan,
-  onRunScan,
-  onSyncInbox,
-  onRefreshHeadlines,
-  onApprove,
-  onReject,
-  input,
-  onInputChange,
 }: Props) {
   const [showAllAttack, setShowAllAttack] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
 
-  const routeLabel = (route?: string) => {
-    if (!route) return null;
-    if (route === "local_fast") return "FAST";
-    if (route === "local_deep") return "DEEP";
-    if (route === "cloud_pending_approval") return "CLOUD PENDING APPROVAL";
-    if (route === "tool") return "TOOL";
-    return route.toUpperCase();
-  };
+  // Chart refs
+  const statusChartRef = useRef<HTMLCanvasElement>(null);
+  const sourceChartRef = useRef<HTMLCanvasElement>(null);
+  const focusChartRef = useRef<HTMLCanvasElement>(null);
+  const statusChartInstance = useRef<Chart | null>(null);
+  const sourceChartInstance = useRef<Chart | null>(null);
+  const focusChartInstance = useRef<Chart | null>(null);
+
+  // Compute chart data from attack order
+  const chartData = useMemo(() => {
+    const statusCounts = { done: 0, progress: 0, todo: 0, blocked: 0 };
+    const sourceCounts: Record<string, number> = {};
+    const focusCounts: Record<string, { high: number; medium: number }> = {};
+
+    attackOrder.forEach((task) => {
+      const urg = task.urgency?.toLowerCase() ?? '';
+      if (urg === 'critical' || urg === 'today') statusCounts.progress++;
+      else if (urg === 'tomorrow' || urg === 'week') statusCounts.todo++;
+      else if (urg === 'later') statusCounts.todo++;
+      else statusCounts.todo++;
+
+      const src = task.source || 'Unknown';
+      sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+
+      if (!focusCounts[src]) focusCounts[src] = { high: 0, medium: 0 };
+      if (urg === 'critical' || urg === 'today') focusCounts[src].high++;
+      else focusCounts[src].medium++;
+    });
+
+    return { statusCounts, sourceCounts, focusCounts };
+  }, [attackOrder]);
+
+  // Status doughnut chart
+  useEffect(() => {
+    if (!statusChartRef.current || !prefs.charts) return;
+    if (statusChartInstance.current) statusChartInstance.current.destroy();
+
+    const { statusCounts } = chartData;
+    statusChartInstance.current = new Chart(statusChartRef.current, {
+      type: 'doughnut',
+      data: {
+        labels: ['Done', 'In Progress', 'To Do', 'Blocked'],
+        datasets: [{
+          data: [statusCounts.done, statusCounts.progress, statusCounts.todo, statusCounts.blocked],
+          backgroundColor: ['#22c55e', '#3b82f6', '#6b7280', '#ef4444'],
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+        },
+      },
+    });
+
+    return () => { statusChartInstance.current?.destroy(); };
+  }, [chartData, prefs.charts]);
+
+  // Source doughnut chart
+  useEffect(() => {
+    if (!sourceChartRef.current || !prefs.charts) return;
+    if (sourceChartInstance.current) sourceChartInstance.current.destroy();
+
+    const { sourceCounts } = chartData;
+    const labels = Object.keys(sourceCounts);
+    const data = Object.values(sourceCounts);
+    const DOMAIN_COLORS = ['#a78bfa', '#60a5fa', '#fbbf24', '#22d3ee', '#34d399', '#fb923c', '#f472b6'];
+
+    sourceChartInstance.current = new Chart(sourceChartRef.current, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: labels.map((_, i) => DOMAIN_COLORS[i % DOMAIN_COLORS.length]),
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+        },
+      },
+    });
+
+    return () => { sourceChartInstance.current?.destroy(); };
+  }, [chartData, prefs.charts]);
+
+  // Focus load horizontal bar chart
+  useEffect(() => {
+    if (!focusChartRef.current || !prefs.charts) return;
+    if (focusChartInstance.current) focusChartInstance.current.destroy();
+
+    const { focusCounts } = chartData;
+    const labels = Object.keys(focusCounts);
+    const highData = labels.map((l) => focusCounts[l].high);
+    const medData = labels.map((l) => focusCounts[l].medium);
+
+    focusChartInstance.current = new Chart(focusChartRef.current, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'High', data: highData, backgroundColor: '#ef4444' },
+          { label: 'Medium', data: medData, backgroundColor: '#f59e0b' },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: {
+          x: { stacked: true, grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280' } },
+          y: { stacked: true, grid: { display: false }, ticks: { color: '#9ca3af' } },
+        },
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+        },
+      },
+    });
+
+    return () => { focusChartInstance.current?.destroy(); };
+  }, [chartData, prefs.charts]);
 
   const attackSources = useMemo(() => {
     const uniq = Array.from(new Set(attackOrder.map((task) => task.source).filter(Boolean)));
@@ -160,26 +253,38 @@ export function OverviewPanel({
           <div className="chart-card">
             <h3>By Status</h3>
             <div className="chart-wrap">
-              <div className="chart-placeholder">No chart data yet</div>
+              {attackOrder.length > 0 ? (
+                <canvas ref={statusChartRef} />
+              ) : (
+                <div className="chart-placeholder">No chart data yet</div>
+              )}
             </div>
           </div>
           <div className="chart-card">
             <h3>By Source</h3>
             <div className="chart-wrap">
-              <div className="chart-placeholder">Awaiting more data</div>
+              {attackOrder.length > 0 ? (
+                <canvas ref={sourceChartRef} />
+              ) : (
+                <div className="chart-placeholder">Awaiting more data</div>
+              )}
             </div>
           </div>
           <div className="chart-card">
             <h3>Focus Load</h3>
             <div className="chart-wrap">
-              <div className="chart-placeholder">Sync more tasks to unlock</div>
+              {attackOrder.length > 0 ? (
+                <canvas ref={focusChartRef} />
+              ) : (
+                <div className="chart-placeholder">Sync more tasks to unlock</div>
+              )}
             </div>
           </div>
         </div>
       ) : null}
 
       {prefs.attack ? (
-        <div className="section-card">
+        <div className="section-card attack-order">
           <div className="section-header">
             <span className="sh-icon">⚡</span>
             <h3>Attack Order — What to Tackle First</h3>
@@ -224,7 +329,7 @@ export function OverviewPanel({
       ) : null}
 
       {scanResult ? (
-        <div className="section-card">
+        <div className="section-card scan-signals">
           <div className="section-header">
             <span className="sh-icon">📂</span>
             <h3>Scan Signals</h3>
@@ -272,96 +377,6 @@ export function OverviewPanel({
         </div>
       ) : null}
 
-      {prefs.chat ? (
-        <div className="section-card">
-          <div className="section-header">
-            <span className="sh-icon">🛠</span>
-            <h3>Local Brain Chat</h3>
-          </div>
-          <div className="chat-grid">
-            <div className="chat-column">
-              <div className="chat-panel">
-                <div className="chat-panel-header">Conversation</div>
-                <div className="chat-window">
-                  {messages.length === 0 ? (
-                    <p className="meta">Ask module_09 to scan your desktop or plan your next move.</p>
-                  ) : (
-                    messages.map((msg, idx) => (
-                      <div key={idx} className={`chat-bubble ${msg.role}`}>
-                        <span className="chat-role">{msg.role}</span>
-                        {msg.role === 'assistant' && msg.route_to ? (
-                          <span className="route-badge">{routeLabel(msg.route_to)}</span>
-                        ) : null}
-                        <p>{msg.content}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="chat-actions">
-                  <input
-                    value={input}
-                    onChange={(event) => onInputChange(event.target.value)}
-                    placeholder="Ask module_09 to scan files, summarize, or plan."
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        onSendChat();
-                      }
-                    }}
-                  />
-                  <button onClick={onSendChat}>Send</button>
-                  <button className="ghost" onClick={onOpenScan}>Scan Options</button>
-                </div>
-                <div className="chat-actions quick-actions">
-                  <button className="ghost" onClick={onRunScan}>Run Scan</button>
-                  <button className="ghost" onClick={onSyncInbox}>Sync Inbox</button>
-                  <button className="ghost" onClick={onRefreshHeadlines}>Refresh Headlines</button>
-                </div>
-                {isScanning ? (
-                  <div className="scan-progress">
-                    <div className="scan-progress-bar" />
-                    <div className="meta">Scanning in progress... {scanElapsedS}s elapsed</div>
-                  </div>
-                ) : null}
-                {scanSummary ? <div className="chat-meta">{scanSummary}</div> : null}
-              </div>
-            </div>
-            <div className="chat-column">
-              <div className="chat-panel">
-                <div className="chat-panel-header">Proposed Actions</div>
-                {actions.length === 0 ? (
-                  <p className="meta">No proposed actions yet.</p>
-                ) : (
-                  <ul className="list">
-                    {actions.map((action) => (
-                      <li key={action.id}>
-                        <strong>{action.tool_name}</strong>
-                        <div className="meta">Status: {action.status}</div>
-                        <div className="action-buttons">
-                          <button onClick={() => onApprove(action.id)}>Approve</button>
-                          <button onClick={() => onReject(action.id)}>Reject</button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="chat-panel">
-                <div className="chat-panel-header">Activity Log</div>
-                {activity.length === 0 ? (
-                  <p className="meta">No activity yet.</p>
-                ) : (
-                  <ul className="list">
-                    {activity.slice(-5).map((item, idx) => (
-                      <li key={idx}>{item}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
