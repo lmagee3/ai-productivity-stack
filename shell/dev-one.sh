@@ -3,6 +3,17 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+stop_port() {
+  local port="$1"
+  local pids
+  pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
+  if [[ -n "$pids" ]]; then
+    echo "[dev-one] clearing port $port ($pids)"
+    # shellcheck disable=SC2086
+    kill -9 $pids >/dev/null 2>&1 || true
+  fi
+}
+
 start_ollama() {
   if ! command -v ollama >/dev/null 2>&1; then
     echo "[dev-one] ollama not found; skipping"
@@ -45,6 +56,9 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+# Ensure stale dev servers don't cause port collisions.
+stop_port 8000
+stop_port 5173
 start_ollama
 start_backend
 wait_for_backend
