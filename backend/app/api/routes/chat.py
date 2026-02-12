@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.execution_policy import enforce_tool_execution
 from app.core.llm import get_provider
@@ -31,6 +32,7 @@ class ProposedAction(BaseModel):
 class ChatMessageResponse(BaseModel):
     session_id: int
     assistant_message: str
+    route_to: str
     proposed_actions: list[ProposedAction]
 
 
@@ -41,7 +43,19 @@ class ExecuteActionRequest(BaseModel):
 
 @router.post("/chat/message", response_model=ChatMessageResponse)
 def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
+    settings = get_settings()
     provider = get_provider()
+    lowered = payload.message.lower()
+    wants_heavy_reasoning = (
+        len(payload.message) > 1200
+        or "analyze" in lowered
+        or "strategy" in lowered
+        or "architecture" in lowered
+        or "compare" in lowered
+    )
+    route_to = "local_deep" if wants_heavy_reasoning else "local_fast"
+    if wants_heavy_reasoning and settings.CLOUD_APPROVAL_REQUIRED:
+        route_to = "cloud_pending_approval"
 
     with SessionLocal() as session:
         if payload.session_id is None:
@@ -58,13 +72,18 @@ def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
         session.commit()
         session.refresh(user_msg)
 
-        assistant_text = provider.generate(
+        prompt = (
             "You are the module_09 assistant. Respond briefly and safely. "
             "This system can run read-only file scans via tools. "
             "Do not claim you cannot access local files; instead confirm the scan request "
             "or ask which folder to scan. Do not execute destructive actions.\n\n"
             + payload.message
         )
+        if hasattr(provider, "generate_routed"):
+            complexity = "deep" if wants_heavy_reasoning else "fast"
+            assistant_text = provider.generate_routed(prompt, complexity=complexity)  # type: ignore[attr-defined]
+        else:
+            assistant_text = provider.generate(prompt)
         assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=assistant_text)
         session.add(assistant_msg)
         session.commit()
@@ -97,6 +116,7 @@ def chat_message(payload: ChatMessageRequest) -> ChatMessageResponse:
     return ChatMessageResponse(
         session_id=session_id,
         assistant_message=assistant_text,
+        route_to=route_to,
         proposed_actions=proposed_actions,
     )
 

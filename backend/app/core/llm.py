@@ -53,10 +53,19 @@ class LocalProvider:
             if not base.endswith("/v1"):
                 base = f"{base}/v1"
         self.base_url = base
-        self.model = settings.LOCAL_LLM_MODEL or settings.OLLAMA_MODEL or "gemma"
+        self.model = settings.LOCAL_LLM_MODEL or settings.OLLAMA_MODEL or settings.LOCAL_FAST_MODEL
+        self.fast_model = settings.LOCAL_FAST_MODEL or self.model
+        self.deep_model = settings.LOCAL_DEEP_MODEL or self.model
         self.timeout = settings.LOCAL_LLM_TIMEOUT_S
 
     def generate(self, prompt: str) -> str:
+        return self.generate_routed(prompt, complexity="fast")
+
+    def generate_routed(self, prompt: str, complexity: str = "fast") -> str:
+        model = self.deep_model if complexity == "deep" else self.fast_model
+        return self._generate_with_model(prompt, model)
+
+    def _generate_with_model(self, prompt: str, model: str) -> str:
         if not self.base_url:
             return self._stub_response(prompt)
 
@@ -65,7 +74,7 @@ class LocalProvider:
             response = httpx.post(
                 f"{self.base_url.rstrip('/')}/chat/completions",
                 json={
-                    "model": self.model,
+                    "model": model,
                     "messages": [
                         {"role": "system", "content": "Return only the requested output."},
                         {"role": "user", "content": prompt},

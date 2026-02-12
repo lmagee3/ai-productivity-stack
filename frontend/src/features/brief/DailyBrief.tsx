@@ -46,8 +46,8 @@ const NEWS: Record<NewsTab, NewsItem[]> = {
 };
 
 type ScanResult = {
-  due: string[];
-  tasks: string[];
+  due: Array<{ summary: string; priority: 'critical' | 'high' | 'medium' | 'low' }>;
+  tasks: Array<{ summary: string; priority: 'critical' | 'high' | 'medium' | 'low' }>;
 } | null;
 
 type Props = {
@@ -62,6 +62,8 @@ type Props = {
   briefTotal: number;
   briefRemaining: number;
   briefPct: number;
+  headlines: Array<{ title: string; source: string; url: string; published_at: string | null }>;
+  headlinesUpdatedAt: string | null;
 };
 
 export function DailyBrief({
@@ -76,7 +78,21 @@ export function DailyBrief({
   briefTotal,
   briefRemaining,
   briefPct,
+  headlines,
+  headlinesUpdatedAt,
 }: Props) {
+  const badgeClass = (badge: string) => {
+    const value = badge.toLowerCase();
+    if (value.includes("kairos")) return "badge-source badge-domain-kairos";
+    if (value.includes("school")) return "badge-source badge-domain-school";
+    if (value.includes("job")) return "badge-source badge-domain-job";
+    if (value.includes("personal")) return "badge-source badge-domain-personal";
+    if (value.includes("email")) return "badge-source badge-domain-email";
+    if (value.includes("web")) return "badge-source badge-domain-web";
+    if (value.includes("files")) return "badge-source badge-domain-files";
+    return "badge-source";
+  };
+
   return (
     <div className="daily-brief">
       <div className="brief-header">
@@ -109,6 +125,15 @@ export function DailyBrief({
           <div className="brief-col">
             <div className="section">
               <div className="section-title">News Briefing</div>
+              {headlines.length > 0 ? (
+                <div className="news-item">
+                  <h3>Live Headlines</h3>
+                  <p>{headlines.slice(0, 4).map((item) => item.title).join(' | ')}</p>
+                  <div className="meta">
+                    Updated {headlinesUpdatedAt ? new Date(headlinesUpdatedAt).toLocaleTimeString() : 'recently'}
+                  </div>
+                </div>
+              ) : null}
               <div className="news-cat">
                 {(['markets', 'geopolitics', 'tech', 'science', 'culture'] as NewsTab[]).map((tab) => (
                   <button
@@ -153,7 +178,7 @@ export function DailyBrief({
                       <div>
                         <div className="task-name">
                           {task.title}
-                          <span className="badge badge-source">{task.badge}</span>
+                          <span className={badgeClass(task.badge)}>{task.badge}</span>
                         </div>
                         <div className="task-meta">{task.meta}</div>
                       </div>
@@ -169,7 +194,7 @@ export function DailyBrief({
                       <div>
                         <div className="task-name">
                           {task.title}
-                          <span className="badge badge-source">{task.badge}</span>
+                          <span className={badgeClass(task.badge)}>{task.badge}</span>
                         </div>
                         <div className="task-meta">{task.meta}</div>
                       </div>
@@ -194,7 +219,7 @@ export function DailyBrief({
                     <div>
                       <div className="task-name">
                         {task.title}
-                        <span className="badge badge-source">{task.badge}</span>
+                        <span className={badgeClass(task.badge)}>{task.badge}</span>
                       </div>
                       <div className="task-meta">{task.meta}</div>
                     </div>
@@ -218,7 +243,7 @@ export function DailyBrief({
                     <div>
                       <div className="task-name">
                         {task.title}
-                        <span className="badge badge-source">{task.badge}</span>
+                        <span className={badgeClass(task.badge)}>{task.badge}</span>
                       </div>
                       <div className="task-meta">{task.meta}</div>
                     </div>
@@ -234,8 +259,8 @@ export function DailyBrief({
         {briefPrefs.scan && scanResult ? (
           <div className="section">
             <div className="section-title">Scan Signals</div>
-            <div className="news-item"><h3>Due Signals</h3><p>{scanResult.due.slice(0,3).join(' | ') || 'None'}</p></div>
-            <div className="news-item"><h3>Proposed Tasks</h3><p>{scanResult.tasks.slice(0,3).join(' | ') || 'None'}</p></div>
+            <div className="news-item"><h3>Due Signals</h3><p>{scanResult.due.slice(0,3).map((x) => `${x.summary} [${x.priority}]`).join(' | ') || 'None'}</p></div>
+            <div className="news-item"><h3>Proposed Tasks</h3><p>{scanResult.tasks.slice(0,3).map((x) => `${x.summary} [${x.priority}]`).join(' | ') || 'None'}</p></div>
           </div>
         ) : null}
       </div>

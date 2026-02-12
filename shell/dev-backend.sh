@@ -9,4 +9,7 @@ fi
 
 source .venv/bin/activate
 pip install -r requirements.txt
+if [[ -f alembic.ini ]]; then
+  alembic upgrade head
+fi
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000

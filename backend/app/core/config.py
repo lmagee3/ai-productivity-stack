@@ -11,13 +11,26 @@ class Settings(BaseSettings):
     LLM_DEFAULT_PROVIDER: str = "local"
     LOCAL_LLM_BASE_URL: str | None = None
     LOCAL_LLM_MODEL: str | None = None
+    LOCAL_FAST_MODEL: str = "gemma:latest"
+    LOCAL_DEEP_MODEL: str = "gpt-oss:20b"
     LOCAL_LLM_TIMEOUT_S: float = 30.0
+    CLOUD_FALLBACK_PROVIDER: str = "gpt"
+    CLOUD_APPROVAL_REQUIRED: bool = True
     OLLAMA_BASE_URL: str | None = "http://localhost:11434"
     OLLAMA_MODEL: str | None = "gemma"
     NOTIFY_PROVIDER: str = "off"
     NTFY_URL: str = "https://ntfy.sh"
     NTFY_TOPIC: str | None = None
     ALLOWED_SCAN_ROOTS: str | None = None
+    EMAIL_READ_ENABLED: bool = False
+    EMAIL_IMAP_HOST: str | None = None
+    EMAIL_IMAP_PORT: int = 993
+    EMAIL_IMAP_USER: str | None = None
+    EMAIL_IMAP_PASSWORD: str | None = None
+    EMAIL_IMAP_MAILBOX: str = "INBOX"
+    EMAIL_ALLOWLIST_DOMAINS: str | None = None
+    EMAIL_DENYLIST_SENDERS: str | None = None
+    EMAIL_DENYLIST_SUBJECTS: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

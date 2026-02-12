@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.core.database import SessionLocal
 from app.core.llm import get_provider
+from app.core.config import get_settings
 from app.models.brain_decision import BrainDecision
 from app.models.task import Task
 from app.models.blackboard_task import BlackboardTask
@@ -59,6 +60,7 @@ def file_search(query: str, root: str) -> list[str]:
 
 @router.post("/brain/chat", response_model=BrainChatResponse)
 def brain_chat(payload: BrainChatRequest) -> BrainChatResponse:
+    settings = get_settings()
     provider = get_provider()
     intent = detect_intent(payload.message)
 
@@ -81,8 +83,14 @@ def brain_chat(payload: BrainChatRequest) -> BrainChatResponse:
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
         context["files"] = file_search(payload.message, repo_root)
 
-    use_cloud = len(payload.message) > 2000 or "analyze" in payload.message.lower()
-    route_to = "codex" if use_cloud else "local"
+    wants_heavy_reasoning = (
+        len(payload.message) > 1200
+        or "analyze" in payload.message.lower()
+        or "strategy" in payload.message.lower()
+        or "architecture" in payload.message.lower()
+    )
+    use_cloud = wants_heavy_reasoning and settings.CLOUD_APPROVAL_REQUIRED
+    route_to = settings.CLOUD_FALLBACK_PROVIDER if use_cloud else ("local_deep" if wants_heavy_reasoning else "local_fast")
 
     prompt = (
         "You are the module_09 brain. Be concise and safe. Use the context to answer. "
@@ -91,7 +99,17 @@ def brain_chat(payload: BrainChatRequest) -> BrainChatResponse:
         f"Context: {json.dumps(context)}"
     )
 
-    summary = provider.generate(prompt)
+    if hasattr(provider, "generate_routed"):
+        complexity = "deep" if wants_heavy_reasoning else "fast"
+        summary = provider.generate_routed(prompt, complexity=complexity)  # type: ignore[attr-defined]
+    else:
+        summary = provider.generate(prompt)
+
+    if use_cloud:
+        summary = (
+            f"{summary}\n\nCloud escalation suggested to {settings.CLOUD_FALLBACK_PROVIDER}. "
+            "Approval is required before any cloud call."
+        )
 
     with SessionLocal() as session:
         decision = BrainDecision(

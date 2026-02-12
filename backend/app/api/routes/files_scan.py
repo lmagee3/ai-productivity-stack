@@ -29,6 +29,8 @@ TEXT_EXTS = {
     "log",
 }
 
+DOC_EXTS = {"pdf", "docx"}
+
 DUE_KEYWORDS = ["due", "deadline", "submit", "assignment", "discussion", "quiz", "module", "week"]
 JUNK_MARKERS = ["~", "backup", "old", "copy", "final_final", ".tmp", ".bak"]
 
@@ -62,6 +64,7 @@ class ProposedTask(BaseModel):
     notes: str
     due_date: str | None
     urgency: Literal["critical", "today", "tomorrow", "week", "later"]
+    priority: Literal["critical", "high", "medium", "low"] = "medium"
     source: Literal["files"] = "files"
 
 
@@ -76,6 +79,58 @@ class ScanResponse(BaseModel):
 
 def is_text_file(ext: str) -> bool:
     return ext in TEXT_EXTS
+
+
+def extract_text(path: Path, ext: str, max_chars: int) -> str:
+    if ext in TEXT_EXTS:
+        try:
+            with path.open("r", errors="ignore") as handle:
+                return handle.read(max_chars)
+        except OSError:
+            return ""
+
+    if ext == "pdf":
+        try:
+            from pypdf import PdfReader  # type: ignore
+
+            reader = PdfReader(str(path))
+            chunks: list[str] = []
+            size = 0
+            for page in reader.pages:
+                text = page.extract_text() or ""
+                if not text:
+                    continue
+                remaining = max_chars - size
+                if remaining <= 0:
+                    break
+                text = text[:remaining]
+                chunks.append(text)
+                size += len(text)
+            return "\n".join(chunks)
+        except Exception:
+            return ""
+
+    if ext == "docx":
+        try:
+            from docx import Document  # type: ignore
+
+            doc = Document(str(path))
+            chunks: list[str] = []
+            size = 0
+            for para in doc.paragraphs:
+                if not para.text:
+                    continue
+                remaining = max_chars - size
+                if remaining <= 0:
+                    break
+                text = para.text[:remaining]
+                chunks.append(text)
+                size += len(text)
+            return "\n".join(chunks)
+        except Exception:
+            return ""
+
+    return ""
 
 
 def parse_due_date(text: str) -> datetime | None:
@@ -143,6 +198,40 @@ def urgency_bucket(due_date: datetime | None) -> str:
     return "later"
 
 
+def urgency_rank(urgency: str) -> int:
+    order = {"critical": 0, "today": 1, "tomorrow": 2, "week": 3, "later": 4}
+    return order.get(urgency, 5)
+
+
+def priority_from_urgency(urgency: str) -> str:
+    if urgency == "critical":
+        return "critical"
+    if urgency in {"today", "tomorrow"}:
+        return "high"
+    if urgency == "week":
+        return "medium"
+    return "low"
+
+
+def infer_deliverable(name: str, text: str) -> str:
+    haystack = f"{name} {text}".lower()
+    if "discussion" in haystack:
+        return "discussion post"
+    if "quiz" in haystack:
+        return "quiz submission"
+    if "exam" in haystack:
+        return "exam prep"
+    if "project" in haystack:
+        return "project milestone"
+    if "module" in haystack or "week" in haystack:
+        return "weekly module deliverable"
+    return "assignment deliverable"
+
+
+def task_score(urgency: str, due_date: str | None, title: str) -> tuple[int, str, str]:
+    return (urgency_rank(urgency), due_date or "9999-12-31", title.lower())
+
+
 def scan_paths(paths: list[str], options: ScanOptions) -> tuple[int, list[dict[str, Any]], list[FileSignal], list[dict[str, Any]], list[dict[str, Any]], list[ProposedTask]]:
     scanned = 0
     hot_files: list[dict[str, Any]] = []
@@ -196,12 +285,8 @@ def scan_paths(paths: list[str], options: ScanOptions) -> tuple[int, list[dict[s
                 junk_candidates.append({"path": str(path), "reason": "name_match"})
 
             text_content = ""
-            if options.read_text and is_text_file(ext):
-                try:
-                    with path.open("r", errors="ignore") as handle:
-                        text_content = handle.read(options.max_chars)
-                except OSError:
-                    text_content = ""
+            if options.read_text:
+                text_content = extract_text(path, ext, options.max_chars)
 
             signal = None
             if any(keyword in name_lower for keyword in DUE_KEYWORDS) or any(
@@ -220,12 +305,19 @@ def scan_paths(paths: list[str], options: ScanOptions) -> tuple[int, list[dict[s
                 urgency = urgency_bucket(due_dt)
                 proposed_tasks.append(
                     ProposedTask(
-                        title=f"Review {path.name}",
-                        notes=f"Found due signal in {path}",
+                        title=f"Review {infer_deliverable(path.name, text_content)}",
+                        notes="Due signal detected in scanned content.",
                         due_date=due_dt.date().isoformat() if due_dt else None,
                         urgency=urgency,
+                        priority=priority_from_urgency(urgency),
                     )
                 )
+
+    proposed_tasks.sort(key=lambda task: task_score(task.urgency, task.due_date, task.title))
+    due_signals.sort(key=lambda signal: (signal.due_date or "9999-12-31", signal.path.lower()))
+    hot_files.sort(key=lambda item: item.get("modified_at", ""), reverse=True)
+    stale_candidates.sort(key=lambda item: item.get("modified_at", ""))
+    junk_candidates.sort(key=lambda item: str(item.get("path", "")).lower())
 
     return scanned, hot_files, due_signals, stale_candidates, junk_candidates, proposed_tasks
 
