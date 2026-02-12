@@ -15,6 +15,8 @@ from app.services.task_ingest import upsert_tasks_from_items
 
 @dataclass
 class RuntimeState:
+    runtime_started_at: str | None = None
+    runtime_heartbeat_at: str | None = None
     scan_last_run: str | None = None
     email_last_run: str | None = None
     news_last_run: str | None = None
@@ -76,11 +78,13 @@ def _run_news_refresh() -> None:
 
 
 def _loop() -> None:
-    settings = get_settings()
+    STATE.runtime_started_at = _now_iso()
     next_scan = 0.0
     next_email = 0.0
     next_news = 0.0
     while not _STOP.is_set():
+        settings = get_settings()
+        STATE.runtime_heartbeat_at = _now_iso()
         now = time.time()
         if settings.AUTO_SCAN_ENABLED and now >= next_scan:
             try:
@@ -106,11 +110,39 @@ def _loop() -> None:
         _STOP.wait(5)
 
 
+def run_scan_once() -> None:
+    _run_scan()
+
+
+def run_email_sync_once() -> None:
+    _run_email_sync()
+
+
+def run_news_refresh_once() -> None:
+    _run_news_refresh()
+
+
 def start_runtime() -> None:
     global _THREAD
     if _THREAD and _THREAD.is_alive():
         return
     _STOP.clear()
+    # Kick once at startup so status reflects activity quickly.
+    try:
+        _run_news_refresh()
+    except Exception as exc:
+        STATE.news_last_error = str(exc)
+    settings = get_settings()
+    if settings.AUTO_SCAN_ENABLED:
+        try:
+            _run_scan()
+        except Exception as exc:
+            STATE.scan_last_error = str(exc)
+    if settings.AUTO_EMAIL_SYNC_ENABLED:
+        try:
+            _run_email_sync()
+        except Exception as exc:
+            STATE.email_last_error = str(exc)
     _THREAD = threading.Thread(target=_loop, daemon=True, name="module09-runtime")
     _THREAD.start()
 

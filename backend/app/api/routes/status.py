@@ -25,6 +25,8 @@ def status() -> dict:
         "auto_scan_enabled": settings.AUTO_SCAN_ENABLED,
         "auto_email_sync_enabled": settings.AUTO_EMAIL_SYNC_ENABLED,
         "runtime": {
+            "runtime_started_at": STATE.runtime_started_at,
+            "runtime_heartbeat_at": STATE.runtime_heartbeat_at,
             "scan_last_run": STATE.scan_last_run,
             "scan_last_created": STATE.scan_last_created,
             "scan_last_error": STATE.scan_last_error,

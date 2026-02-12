@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import re
+import io
+import contextlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -93,11 +95,14 @@ def extract_text(path: Path, ext: str, max_chars: int) -> str:
         try:
             from pypdf import PdfReader  # type: ignore
 
-            reader = PdfReader(str(path))
+            # Silence noisy parser warnings from malformed PDFs.
+            with contextlib.redirect_stderr(io.StringIO()):
+                reader = PdfReader(str(path))
             chunks: list[str] = []
             size = 0
             for page in reader.pages:
-                text = page.extract_text() or ""
+                with contextlib.redirect_stderr(io.StringIO()):
+                    text = page.extract_text() or ""
                 if not text:
                     continue
                 remaining = max_chars - size
