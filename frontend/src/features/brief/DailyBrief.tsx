@@ -26,24 +26,30 @@ type NewsTab = 'markets' | 'geopolitics' | 'tech' | 'science' | 'culture';
 
 type NewsItem = { title: string; body: string; tone?: 'up' | 'down' | 'alert' };
 
-const NEWS: Record<NewsTab, NewsItem[]> = {
-  markets: [
-    { title: 'Market Pulse', body: 'Broad risk appetite steady. Keep an eye on earnings and macro prints.', tone: 'up' },
-    { title: 'Rates Watch', body: 'Treasury curve flat; short-end sensitive to data surprises.' },
-  ],
-  geopolitics: [
-    { title: 'Global Brief', body: 'Maintain awareness of regional flashpoints and supply chain risk.', tone: 'alert' },
-  ],
-  tech: [
-    { title: 'AI Platforms', body: 'Model competition accelerating; focus on local-first reliability.' },
-  ],
-  science: [
-    { title: 'Research Pulse', body: 'Incremental gains in biotech and materials science.' },
-  ],
-  culture: [
-    { title: 'Cultural Radar', body: 'Attention cycles remain short; clarity beats noise.' },
-  ],
-};
+const MAX_TASK_TITLE = 96;
+const MAX_TASK_META = 120;
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+function cleanTaskText(text: string): string {
+  return text
+    .replace(/\/[\w.\-/]+/g, '[path]')
+    .replace(/([A-Za-z0-9_-]+)\.(pdf|docx|txt|xml|md|csv|xlsx|pptx|js|ts|tsx|py)\b/gi, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function classifyHeadline(title: string): NewsTab {
+  const t = title.toLowerCase();
+  if (/(market|stock|fed|rate|economy|earnings|crypto|bond|nasdaq|dow|s&p)/.test(t)) return 'markets';
+  if (/(war|election|policy|government|sanction|china|russia|nato|middle east|ukraine)/.test(t)) return 'geopolitics';
+  if (/(ai|openai|xai|model|chip|software|startup|tech|robot|apple|google|microsoft)/.test(t)) return 'tech';
+  if (/(science|nasa|space|research|study|climate|physics|biology|medicine)/.test(t)) return 'science';
+  return 'culture';
+}
 
 type ScanResult = {
   due: Array<{ summary: string; priority: 'critical' | 'high' | 'medium' | 'low' }>;
@@ -93,6 +99,52 @@ export function DailyBrief({
     return "badge-source";
   };
 
+  const newsByTab = React.useMemo(() => {
+    const grouped: Record<NewsTab, NewsItem[]> = {
+      markets: [],
+      geopolitics: [],
+      tech: [],
+      science: [],
+      culture: [],
+    };
+    headlines.forEach((item) => {
+      const tab = classifyHeadline(item.title);
+      const when = item.published_at ? new Date(item.published_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'recent';
+      grouped[tab].push({
+        title: truncate(item.title, 110),
+        body: `${item.source} · ${when}`,
+      });
+    });
+    return grouped;
+  }, [headlines]);
+
+  const activeNews: NewsItem[] = (newsByTab[newsTab].length > 0 ? newsByTab[newsTab] : headlines.map((h) => ({
+    title: truncate(h.title, 110),
+    body: `${h.source} · ${h.published_at ? new Date(h.published_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'recent'}`,
+  }))).slice(0, 4);
+
+  const renderTask = (task: BriefTask, className: string) => {
+    const priorityTag = task.urgency === 'critical' ? 'CRITICAL' : task.urgency === 'today' ? 'TODAY' : task.urgency.toUpperCase();
+    const cleanTitle = truncate(cleanTaskText(task.title), MAX_TASK_TITLE);
+    const cleanMeta = truncate(cleanTaskText(task.meta), MAX_TASK_META);
+    return (
+      <div
+        key={task.id}
+        className={`task ${className} ${briefChecks[task.id] ? 'checked' : ''}`}
+        onClick={() => onToggle(task.id)}
+      >
+        <input type="checkbox" checked={briefChecks[task.id] ?? false} readOnly />
+        <div className="task-body">
+          <div className="task-name">
+            <span className="task-title">{cleanTitle}</span>
+            <span className={badgeClass(task.badge)}>{task.badge}</span>
+          </div>
+          <div className="task-meta">{priorityTag} · {cleanMeta}</div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="daily-brief">
       <div className="brief-header">
@@ -125,15 +177,6 @@ export function DailyBrief({
           <div className="brief-col">
             <div className="section">
               <div className="section-title">News Briefing</div>
-              {headlines.length > 0 ? (
-                <div className="news-item">
-                  <h3>Live Headlines</h3>
-                  <p>{headlines.slice(0, 4).map((item) => item.title).join(' | ')}</p>
-                  <div className="meta">
-                    Updated {headlinesUpdatedAt ? new Date(headlinesUpdatedAt).toLocaleTimeString() : 'recently'}
-                  </div>
-                </div>
-              ) : null}
               <div className="news-cat">
                 {(['markets', 'geopolitics', 'tech', 'science', 'culture'] as NewsTab[]).map((tab) => (
                   <button
@@ -146,7 +189,7 @@ export function DailyBrief({
                 ))}
               </div>
               <div className="news-section active">
-                {NEWS[newsTab].map((item, idx) => (
+                {activeNews.map((item, idx) => (
                   <div
                     key={idx}
                     className={`news-item ${item.tone === 'up' ? 'tone-up' : item.tone === 'alert' ? 'tone-alert' : item.tone === 'down' ? 'tone-down' : ''}`}
@@ -155,6 +198,12 @@ export function DailyBrief({
                     <p>{item.body}</p>
                   </div>
                 ))}
+                {activeNews.length === 0 && headlines.length === 0 ? (
+                  <p className="meta">Loading headlines...</p>
+                ) : null}
+                <div className="meta">
+                  Updated {headlinesUpdatedAt ? new Date(headlinesUpdatedAt).toLocaleTimeString() : 'recently'}
+                </div>
               </div>
             </div>
           </div>
@@ -168,38 +217,8 @@ export function DailyBrief({
                 <p className="meta">No critical or today tasks yet.</p>
               ) : (
                 <>
-                  {briefGroups.critical.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`task priority-critical ${briefChecks[task.id] ? 'checked' : ''}`}
-                      onClick={() => onToggle(task.id)}
-                    >
-                      <input type="checkbox" checked={briefChecks[task.id] ?? false} readOnly />
-                      <div>
-                        <div className="task-name">
-                          {task.title}
-                          <span className={badgeClass(task.badge)}>{task.badge}</span>
-                        </div>
-                        <div className="task-meta">{task.meta}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {briefGroups.today.map((task) => (
-                    <div
-                      key={task.id}
-                      className={`task priority-high ${briefChecks[task.id] ? 'checked' : ''}`}
-                      onClick={() => onToggle(task.id)}
-                    >
-                      <input type="checkbox" checked={briefChecks[task.id] ?? false} readOnly />
-                      <div>
-                        <div className="task-name">
-                          {task.title}
-                          <span className={badgeClass(task.badge)}>{task.badge}</span>
-                        </div>
-                        <div className="task-meta">{task.meta}</div>
-                      </div>
-                    </div>
-                  ))}
+                  {briefGroups.critical.map((task) => renderTask(task, 'priority-critical'))}
+                  {briefGroups.today.map((task) => renderTask(task, 'priority-high'))}
                 </>
               )}
             </div>
@@ -209,22 +228,7 @@ export function DailyBrief({
               {briefGroups.tomorrow.length === 0 ? (
                 <p className="meta">No tasks due tomorrow.</p>
               ) : (
-                briefGroups.tomorrow.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`task priority-med ${briefChecks[task.id] ? 'checked' : ''}`}
-                    onClick={() => onToggle(task.id)}
-                  >
-                    <input type="checkbox" checked={briefChecks[task.id] ?? false} readOnly />
-                    <div>
-                      <div className="task-name">
-                        {task.title}
-                        <span className={badgeClass(task.badge)}>{task.badge}</span>
-                      </div>
-                      <div className="task-meta">{task.meta}</div>
-                    </div>
-                  </div>
-                ))
+                briefGroups.tomorrow.map((task) => renderTask(task, 'priority-med'))
               )}
             </div>
 
@@ -233,22 +237,7 @@ export function DailyBrief({
               {briefGroups.week.length === 0 ? (
                 <p className="meta">No tasks due this week.</p>
               ) : (
-                briefGroups.week.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`task priority-low ${briefChecks[task.id] ? 'checked' : ''}`}
-                    onClick={() => onToggle(task.id)}
-                  >
-                    <input type="checkbox" checked={briefChecks[task.id] ?? false} readOnly />
-                    <div>
-                      <div className="task-name">
-                        {task.title}
-                        <span className={badgeClass(task.badge)}>{task.badge}</span>
-                      </div>
-                      <div className="task-meta">{task.meta}</div>
-                    </div>
-                  </div>
-                ))
+                briefGroups.week.map((task) => renderTask(task, 'priority-low'))
               )}
             </div>
 
