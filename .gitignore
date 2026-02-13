@@ -10,6 +10,8 @@ dist/
 
 # Rust (Tauri)
 target/
+# DECISION: Track Cargo.lock for reproducible builds (Tauri best practice)
+# Reference: https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html
 
 # OS
 .DS_Store
@@ -17,3 +19,12 @@ target/
 # Xcode
 *.xcuserstate
 xcuserdata/
+
+# Security: Never commit secrets or local DBs
+**/.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts
+tsconfig.tsbuildinfo
