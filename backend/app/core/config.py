@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     DB_PATH: str = "module_09.db"
     API_PREFIX: str = ""
     NOTION_TOKEN: str | None = None
+    NOTION_PROD_DB_ID: str = "b1721831-1a6c-4f5e-9c41-5488941abd4c"
+    NOTION_EMAIL_DB_ID: str = "bc4d2a87-93fd-43ae-bc4c-d4bbefca5838"
     API_KEY: str | None = None
     LLM_DEFAULT_PROVIDER: str = "local"
     LOCAL_LLM_BASE_URL: str | None = None

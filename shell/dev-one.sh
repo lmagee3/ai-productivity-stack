@@ -48,6 +48,22 @@ wait_for_backend() {
   echo "[dev-one] backend healthy"
 }
 
+verify_backend_routes() {
+  local failures=0
+  for route in "/health" "/ops/summary" "/ops/next" "/status"; do
+    if ! curl -sf "http://127.0.0.1:8000${route}" -H "X-API-Key: MAGE-local-v.1" >/dev/null 2>&1; then
+      echo "[dev-one] backend route failed: ${route}"
+      failures=$((failures + 1))
+    fi
+  done
+  if [[ $failures -gt 0 ]]; then
+    echo "[dev-one] backend failed startup checks; tailing backend log:"
+    tail -n 60 /tmp/module09-backend.log || true
+    return 1
+  fi
+  echo "[dev-one] backend routes verified"
+}
+
 cleanup() {
   if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "$BACKEND_PID" >/dev/null 2>&1; then
     kill "$BACKEND_PID" >/dev/null 2>&1 || true
@@ -62,6 +78,7 @@ stop_port 5173
 start_ollama
 start_backend
 wait_for_backend
+verify_backend_routes
 
 cd "$ROOT_DIR/frontend"
 npm install

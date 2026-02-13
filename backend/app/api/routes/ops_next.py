@@ -53,6 +53,12 @@ def build_reason(urgency: str, due_at: datetime | None, priority: str | None) ->
     return f"Due soon; priority {priority or 'normal'}"
 
 
+def normalize_dt(value: datetime | None) -> datetime:
+    if value is None:
+        return datetime.max.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
 @router.get("/ops/next")
 def ops_next() -> dict[str, Any]:
     items: list[dict[str, Any]] = []
@@ -70,7 +76,7 @@ def ops_next() -> dict[str, Any]:
                     "urgency": urgency,
                     "priority": "low",
                     "reason": build_reason(urgency, due_at, "low"),
-                    "_sort_due": due_at or datetime.max.replace(tzinfo=timezone.utc),
+                    "_sort_due": normalize_dt(due_at),
                 }
             )
 
@@ -86,7 +92,7 @@ def ops_next() -> dict[str, Any]:
                     "urgency": urgency,
                     "priority": task.priority,
                     "reason": build_reason(urgency, due_at, task.priority),
-                    "_sort_due": due_at or datetime.max.replace(tzinfo=timezone.utc),
+                    "_sort_due": normalize_dt(due_at),
                 }
             )
 

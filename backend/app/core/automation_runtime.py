@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import threading
 import time
 from dataclasses import dataclass
@@ -9,8 +10,10 @@ from app.api.routes.files_scan import ScanOptions, scan_paths
 from app.api.routes.ingest_connectors import EmailFetchRequest, ingest_email_fetch
 from app.api.routes.news import get_headlines
 from app.core.config import get_settings
+from app.core.database import SessionLocal
 from app.core.execution_policy import enforce_file_scan
 from app.services.task_ingest import upsert_tasks_from_items
+from app.services.notion_sync import sync_notion_tasks
 
 
 @dataclass
@@ -20,11 +23,14 @@ class RuntimeState:
     scan_last_run: str | None = None
     email_last_run: str | None = None
     news_last_run: str | None = None
+    notion_last_run: str | None = None
     scan_last_error: str | None = None
     email_last_error: str | None = None
     news_last_error: str | None = None
+    notion_last_error: str | None = None
     scan_last_created: int = 0
     email_last_created: int = 0
+    notion_last_synced: int = 0
 
 
 STATE = RuntimeState()
@@ -77,11 +83,23 @@ def _run_news_refresh() -> None:
     STATE.news_last_error = None
 
 
+async def _run_notion_sync() -> None:
+    with SessionLocal() as db:
+        result = await sync_notion_tasks(db)
+        STATE.notion_last_synced = result.get("synced", 0)
+        STATE.notion_last_run = _now_iso()
+        if result.get("errors"):
+            STATE.notion_last_error = "; ".join(result["errors"])
+        else:
+            STATE.notion_last_error = None
+
+
 def _loop() -> None:
     STATE.runtime_started_at = _now_iso()
     next_scan = 0.0
     next_email = 0.0
     next_news = 0.0
+    next_notion = 0.0
     while not _STOP.is_set():
         settings = get_settings()
         STATE.runtime_heartbeat_at = _now_iso()
@@ -107,6 +125,14 @@ def _loop() -> None:
                 STATE.news_last_error = str(exc)
             next_news = now + max(1, settings.AUTO_NEWS_REFRESH_MIN) * 60
 
+        # Notion sync every 4 hours (240 min)
+        if now >= next_notion:
+            try:
+                asyncio.run(_run_notion_sync())
+            except Exception as exc:
+                STATE.notion_last_error = str(exc)
+            next_notion = now + 240 * 60
+
         _STOP.wait(5)
 
 
@@ -120,6 +146,10 @@ def run_email_sync_once() -> None:
 
 def run_news_refresh_once() -> None:
     _run_news_refresh()
+
+
+async def run_notion_sync_once() -> None:
+    await _run_notion_sync()
 
 
 def start_runtime() -> None:

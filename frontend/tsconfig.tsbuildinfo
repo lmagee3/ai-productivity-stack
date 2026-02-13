@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/chat.ts","./src/health.ts","./src/main.tsx","./src/news.ts","./src/ops-next.ts","./src/ops.ts","./src/vite-env.d.ts","./src/api/client.ts","./src/components/scanmodal.tsx","./src/components/settingsmodal.tsx","./src/features/brief/dailybrief.tsx","./src/features/overview/overviewpanel.tsx"],"version":"5.9.3"}

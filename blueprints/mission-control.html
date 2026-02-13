@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Control — Kairos Sprint Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0f;
+    color: #e5e7eb;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #111; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+  .app { max-width: 1280px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .header h1 { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #a78bfa, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header-sub { font-size: 12px; color: #6b7280; margin-bottom: 20px; }
+  .sync-btn { background: #1f1f2e; border: 1px solid #2d2d44; color: #a78bfa; font-size: 12px; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .sync-btn:hover { background: #2d2d44; }
+
+  /* Alert Banner */
+  .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .alert-red { background: #1a0a0a; border: 1px solid #7f1d1d; }
+  .alert-red .alert-icon { color: #f87171; }
+  .alert-yellow { background: #1a1a0a; border: 1px solid #854d0e; }
+  .alert-yellow .alert-icon { color: #fbbf24; }
+
+  /* Nav Tabs */
+  .nav { display: flex; gap: 4px; background: #111118; border-radius: 10px; padding: 4px; margin-bottom: 20px; width: fit-content; }
+  .nav-btn { padding: 8px 20px; border-radius: 8px; border: none; background: transparent; color: #6b7280; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .2s; }
+  .nav-btn.active { background: #7c3aed; color: #fff; }
+  .nav-btn:hover:not(.active) { color: #d1d5db; }
+
+  /* Metric Cards */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 768px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+  .metric-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; }
+  .metric-card .mc-top { display: flex; align-items: center; gap: 10px; }
+  .metric-card .mc-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .mc-icon.green { background: #052e16; color: #4ade80; }
+  .mc-icon.blue { background: #0c1a3d; color: #60a5fa; }
+  .mc-icon.red { background: #2a0a0a; color: #f87171; }
+  .mc-icon.yellow { background: #2a1a0a; color: #fbbf24; }
+  .metric-card .mc-val { font-size: 28px; font-weight: 800; color: #fff; }
+  .metric-card .mc-label { font-size: 12px; color: #6b7280; }
+  .metric-card .mc-sub { font-size: 11px; color: #4b5563; margin-top: 2px; }
+
+  /* Charts Grid */
+  .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; }
+  .chart-card h3 { font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* Suggestions */
+  .section-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .section-header h3 { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .section-header .sh-icon { color: #a78bfa; }
+
+  .sug-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #1e1e2e; margin-bottom: 6px; transition: background .15s; }
+  .sug-item:hover { background: #16161f; }
+  .sug-item.overdue { background: #1a0808; border-color: #7f1d1d; }
+  .sug-item.due-today { background: #1a1808; border-color: #854d0e; }
+  .sug-rank { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .sug-rank.r1 { background: #dc2626; color: #fff; }
+  .sug-rank.r2 { background: #ea580c; color: #fff; }
+  .sug-rank.r3 { background: #ca8a04; color: #000; }
+  .sug-rank.rn { background: #374151; color: #fff; }
+  .sug-body { flex: 1; min-width: 0; }
+  .sug-name { font-size: 13px; font-weight: 500; color: #e5e7eb; display: flex; align-items: center; gap: 6px; }
+  .sug-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .sug-reason { font-size: 11px; color: #6b7280; font-style: italic; margin-top: 4px; }
+
+  /* Badges */
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 600; border: 1px solid; }
+  .badge-done { background: #052e16; color: #4ade80; border-color: #166534; }
+  .badge-progress { background: #0c1a3d; color: #60a5fa; border-color: #1e40af; }
+  .badge-todo { background: #1a1a1a; color: #9ca3af; border-color: #374151; }
+  .badge-blocked { background: #2a0a0a; color: #f87171; border-color: #991b1b; }
+  .domain-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: #1a1a2e; font-weight: 500; }
+  .domain-kairos { color: #a78bfa; }
+  .domain-jobsearch { color: #60a5fa; }
+  .domain-school { color: #fbbf24; }
+  .domain-personal { color: #22d3ee; }
+  .pri-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .pri-high { background: #ef4444; }
+  .pri-med { background: #f59e0b; }
+  .pri-low { background: #22c55e; }
+  .days-label { font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .days-overdue { color: #f87171; }
+  .days-today { color: #fbbf24; }
+  .days-soon { color: #fb923c; }
+  .days-normal { color: #6b7280; }
+
+  /* Show more btn */
+  .show-more { background: none; border: none; color: #a78bfa; font-size: 12px; cursor: pointer; font-family: inherit; padding: 6px 0; }
+  .show-more:hover { color: #c4b5fd; }
+
+  /* Domain filter */
+  .domain-filters { display: flex; gap: 4px; }
+  .df-btn { padding: 4px 10px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+  .df-btn { background: #1a1a2e; color: #6b7280; }
+  .df-btn.active { background: #7c3aed; color: #fff; }
+  .df-btn:hover:not(.active) { color: #d1d5db; }
+
+  /* Task list */
+  .task-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; transition: background .15s; }
+  .task-row:hover { background: #16161f; }
+  .task-name { flex: 1; font-size: 13px; color: #d1d5db; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Sprint View */
+  .sprint-progress { margin-bottom: 16px; }
+  .sp-bar-wrap { height: 10px; background: #1a1a2e; border-radius: 99px; overflow: hidden; }
+  .sp-bar-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa); border-radius: 99px; transition: width .5s ease; }
+  .sp-labels { display: flex; justify-content: space-between; font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+
+  .sprint-task { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #1e1e2e; margin-bottom: 6px; }
+  .sprint-task.st-done { background: #051a0e; border-color: #166534; }
+  .sprint-task.st-progress { background: #0a1a3d; border-color: #1e40af; }
+  .sprint-task.st-blocked { background: #1a0808; border-color: #991b1b; }
+  .sprint-task .st-icon { font-size: 16px; flex-shrink: 0; }
+
+  .crit-path { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .cp-node { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1px solid; }
+  .cp-done { background: #052e16; border-color: #166534; color: #4ade80; }
+  .cp-active { background: #0c1a3d; border-color: #1e40af; color: #60a5fa; box-shadow: 0 0 0 2px #3b82f6; }
+  .cp-blocked { background: #2a0a0a; border-color: #991b1b; color: #f87171; }
+  .cp-pending { background: #1a1a2e; border-color: #374151; color: #6b7280; }
+  .cp-arrow { color: #374151; font-size: 14px; }
+
+  /* Timeline */
+  .tl-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .tl-label { width: 200px; flex-shrink: 0; font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-bar-wrap { flex: 1; height: 22px; background: #111118; border-radius: 99px; overflow: hidden; position: relative; }
+  .tl-bar { height: 100%; border-radius: 99px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 10px; font-weight: 700; min-width: 40px; transition: width .4s ease; }
+  .tl-bar.overdue { background: #dc2626; color: #fff; }
+  .tl-bar.today { background: #ca8a04; color: #000; }
+  .tl-bar.blocked { background: #7f1d1d; color: #fca5a5; }
+  .tl-bar.normal { background: #2563eb; color: #fff; }
+  .tl-bar.soon { background: #ea580c; color: #fff; }
+  .tl-scale { display: flex; justify-content: space-between; font-size: 10px; color: #374151; margin-bottom: 8px; padding-left: 208px; }
+
+  .footer { text-align: center; font-size: 11px; color: #2d2d44; margin-top: 32px; padding-bottom: 20px; }
+
+  /* Animate in */
+  .fade-in { animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>&#9678; Mission Control</h1>
+    <button class="sync-btn" onclick="location.reload()">&#8635; Refresh</button>
+  </div>
+  <div class="header-sub">Lawrence Magee &middot; Sprint Feb 7 – Mar 6 &middot; Kairos MVP + Job Search + School</div>
+
+  <!-- Alert Banner -->
+  <div id="alertBanner"></div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="nav-btn active" data-view="overview" onclick="switchView('overview')">Overview</button>
+    <button class="nav-btn" data-view="sprint" onclick="switchView('sprint')">Sprint</button>
+    <button class="nav-btn" data-view="timeline" onclick="switchView('timeline')">Timeline</button>
+    <button class="nav-btn" data-view="all" onclick="switchView('all')">All Tasks</button>
+  </div>
+
+  <!-- VIEWS -->
+  <div id="view-overview" class="view-panel fade-in"></div>
+  <div id="view-sprint" class="view-panel hidden fade-in"></div>
+  <div id="view-timeline" class="view-panel hidden fade-in"></div>
+  <div id="view-all" class="view-panel hidden fade-in"></div>
+
+  <div class="footer">Kairos Mission Control &middot; Powered by Claude &middot; <span id="lastSync"></span></div>
+</div>
+
+<script>
+// ============ DATA ============
+const TODAY = new Date('2026-02-09');
+const TASKS = [
+  // In Progress
+  { id:1, name:"Fix mic crash/freeze (VoiceManager teardown + audio session)", due:"2026-02-13", priority:"High", domain:"Kairos", status:"In Progress", sprint:true },
+  { id:2, name:"Demo to Amico / Konnectryx", due:"2026-03-06", priority:"High", domain:"Kairos", status:"In Progress", sprint:true },
+  // CRITICAL — Tomorrow (Feb 8)
+  { id:33, name:"🔥 Complete MAQC 670 FAIR Paper Assignment + peer reply", due:"2026-02-08", priority:"High", domain:"School", status:"Done" },
+  { id:6, name:"Review + finalize new resume", due:"2026-02-08", priority:"High", domain:"Job Search", status:"Done" },
+  { id:12, name:"Review Week 7 Course Announcements", due:"2026-02-08", priority:"Medium", domain:"School", status:"Done" },
+  // Sunday (Feb 9)
+  { id:34, name:"Review MSSA Military Spouse Program — Feb 9 Start", due:"2026-02-09", priority:"High", domain:"School", status:"To Do" },
+  { id:8, name:"GitHub cleanup — make Kairos + Deep private, delete tutorials", due:"2026-02-09", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:9, name:"Push AI Productivity Stack showcase repo to GitHub", due:"2026-02-09", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:10, name:"Update GitHub bio + profile, pin showcase repo", due:"2026-02-09", priority:"Medium", domain:"Job Search", status:"To Do" },
+  // Next Week (Feb 10-16)
+  { id:13, name:"Start remote contract job search", due:"2026-02-10", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:35, name:"Register: Cleared AI Talent Webinar (ClearanceJobs)", due:"2026-02-11", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:36, name:"Register: ClearanceJobs User Training", due:"2026-02-12", priority:"Medium", domain:"Job Search", status:"To Do" },
+  { id:15, name:"LinkedIn connection blitz — target 500", due:"2026-02-14", priority:"Medium", domain:"Job Search", status:"To Do" },
+  { id:16, name:"Pay Mom's storage fee", due:"2026-02-15", priority:"Medium", domain:"Personal", status:"Done" },
+  { id:37, name:"Register: FourBlock Spring 2026 Cohorts", due:"2026-02-15", priority:"Medium", domain:"Job Search", status:"To Do" },
+  { id:38, name:"Review: University of London Webinar Series", due:"2026-02-15", priority:"Medium", domain:"School", status:"To Do" },
+  { id:39, name:"Register: VetsInTech IBM Cybersecurity Fundamentals", due:"2026-02-16", priority:"Medium", domain:"Job Search", status:"To Do" },
+  { id:40, name:"Register: VetsInTech Splunk Training", due:"2026-02-16", priority:"Medium", domain:"Job Search", status:"To Do" },
+  { id:41, name:"Register: Military Career Exploration Event (ACT Now)", due:"2026-02-16", priority:"Medium", domain:"Job Search", status:"To Do" },
+  // Later (Feb 17+)
+  { id:42, name:"Register: Military Spouse Virtual Hiring Fair", due:"2026-02-19", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:43, name:"⚠️ Decide: LinkedIn Account Reactivation (14-day)", due:"2026-02-21", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:44, name:"Apply: Google Career Cert Scholarships (Boots to Books)", due:"2026-02-28", priority:"High", domain:"Job Search", status:"To Do" },
+  { id:45, name:"Consider: FINRA Military Spouse Fellowship", due:"2026-03-01", priority:"Medium", domain:"Personal", status:"To Do" },
+  { id:46, name:"Apply: Dog Tag Fellowship Program (Summer)", due:"2026-03-28", priority:"Medium", domain:"Personal", status:"To Do" },
+  // Low Priority
+  { id:47, name:"Apply: Operation Purple Camp (Summer 2026)", due:"2026-02-11", priority:"Low", domain:"Personal", status:"To Do" },
+  // Kairos Sprint
+  { id:17, name:"Record Kairos MVP demo", due:"2026-02-28", priority:"High", domain:"Kairos", status:"To Do", sprint:true },
+  // Blocked
+  { id:18, name:"Build ElevenLabsTTSProvider.swift", due:"2026-02-20", priority:"High", domain:"Kairos", status:"Blocked", sprint:true },
+  { id:19, name:"Wire ElevenLabs into ChatViewModel + test E2E", due:"2026-02-22", priority:"High", domain:"Kairos", status:"Blocked", sprint:true },
+  { id:20, name:"Review Kairos Operating Manual v1.1", due:null, priority:"Medium", domain:"Kairos", status:"Blocked" },
+  // Done
+  { id:21, name:"Sign up for ElevenLabs free tier + get API key", due:null, priority:"High", domain:"Kairos", status:"Done" },
+  { id:22, name:"Follow Up with Elise Hayes on Enrollment Dates", due:null, priority:"High", domain:"School", status:"Done" },
+  { id:23, name:"Monitor BRUIN Connect Security Alert", due:null, priority:"High", domain:"School", status:"Done" },
+  { id:24, name:"Unlock BRUIN Connect Account", due:null, priority:"High", domain:"School", status:"Done" },
+  { id:25, name:"Renew Veteran Education Form", due:null, priority:"High", domain:"School", status:"Done" },
+  { id:26, name:"Build new ATS-optimized resume", due:null, priority:"High", domain:"Job Search", status:"Done" },
+  { id:3, name:"Fix LinkedIn headline, email, and Open to Work settings", due:"2026-02-07", priority:"High", domain:"Job Search", status:"Done" },
+  { id:4, name:"Submit MBA assignment", due:"2026-02-07", priority:"High", domain:"School", status:"Done" },
+  { id:5, name:"Apply for Bellevue University Scholarships", due:"2026-02-07", priority:"High", domain:"School", status:"Done" },
+  { id:7, name:"Paste LinkedIn About section + update experience", due:"2026-02-09", priority:"High", domain:"Job Search", status:"Done" },
+  { id:11, name:"Review Spring Registration & Degree Audit", due:"2026-02-08", priority:"High", domain:"School", status:"Done" },
+  { id:27, name:"Draft LinkedIn profile copy", due:null, priority:"High", domain:"Job Search", status:"Done" },
+  { id:28, name:"Build AI Productivity Stack showcase repo content", due:null, priority:"High", domain:"Job Search", status:"Done" },
+  { id:29, name:"Write Kairos repo README", due:null, priority:"Medium", domain:"Job Search", status:"Done" },
+  { id:30, name:"Write Deep repo README", due:null, priority:"Medium", domain:"Job Search", status:"Done" },
+  { id:31, name:"Draft GitHub bio", due:null, priority:"Medium", domain:"Job Search", status:"Done" },
+  { id:32, name:"Prepare GitHub cleanup commands", due:null, priority:"Medium", domain:"Job Search", status:"Done" },
+  { id:48, name:"Update LinkedIn banner", due:"2026-02-07", priority:"High", domain:"Job Search", status:"Done" },
+  { id:49, name:"Complete MAQC 670 Discussion — 1 Peer Reply", due:"2026-02-09", priority:"High", domain:"School", status:"To Do" },
+  { id:50, name:"Capital Budgeting Team Project (Melanie Miller)", due:"2026-02-10", priority:"High", domain:"School", status:"To Do" },
+  { id:51, name:"Follow Up with Elise Hayes on Enrollment Dates", due:"2026-02-10", priority:"Medium", domain:"School", status:"To Do" },
+  { id:52, name:"Obtain Mom's Death Certificates", due:null, priority:"High", domain:"Personal", status:"To Do" },
+  { id:53, name:"Process Mom's Life Insurance Paperwork", due:null, priority:"High", domain:"Personal", status:"To Do" },
+  { id:54, name:"Apply for Daughter's Social Security Number", due:null, priority:"High", domain:"Personal", status:"To Do" },
+  { id:55, name:"Update Passport — Apply Online", due:null, priority:"Medium", domain:"Personal", status:"To Do" },
+];
+
+const DOMAIN_COLORS = { Kairos:'#a78bfa', 'Job Search':'#60a5fa', School:'#fbbf24', Personal:'#22d3ee' };
+const DOMAIN_CLASSES = { Kairos:'domain-kairos', 'Job Search':'domain-jobsearch', School:'domain-school', Personal:'domain-personal' };
+const STATUS_BADGE = { Done:'badge-done', 'In Progress':'badge-progress', 'To Do':'badge-todo', Blocked:'badge-blocked' };
+
+// ============ HELPERS ============
+function daysUntil(d) { if(!d) return null; return Math.ceil((new Date(d)-TODAY)/(864e5)); }
+
+function urgencyScore(t) {
+  if(t.status==='Done') return -100;
+  if(t.status==='Blocked') return -50;
+  let s=0, d=daysUntil(t.due);
+  if(d!==null){if(d<=0)s+=100;else if(d<=1)s+=80;else if(d<=3)s+=60;else if(d<=7)s+=40;else s+=20;}
+  if(t.priority==='High')s+=30;else if(t.priority==='Medium')s+=15;
+  if(t.domain==='Kairos')s+=10;
+  if(t.status==='In Progress')s+=20;
+  return s;
+}
+
+function reason(t){
+  let p=[], d=daysUntil(t.due);
+  if(d!==null&&d<0) p.push('OVERDUE');
+  else if(d===0) p.push('Due today');
+  else if(d!==null&&d<=2) p.push('Due in '+d+'d');
+  if(t.priority==='High') p.push('high priority');
+  if(t.status==='In Progress') p.push('already started');
+  if(t.status==='Blocked') p.push('blocked — unblock dependencies first');
+  if(t.domain==='Kairos') p.push('critical path to Amico demo');
+  if(t.domain==='Job Search') p.push('income pipeline');
+  if(t.domain==='School') p.push('GI Bill compliance');
+  return p.join(' · ')||'Scheduled';
+}
+
+function priDot(p){return `<span class="pri-dot pri-${p==='High'?'high':p==='Medium'?'med':'low'}"></span>`;}
+function statusBadge(s){return `<span class="badge ${STATUS_BADGE[s]}">${s}</span>`;}
+function domainTag(d){return `<span class="domain-tag ${DOMAIN_CLASSES[d]}">${d}</span>`;}
+function daysLabel(d){
+  if(d===null) return '';
+  if(d<0) return `<span class="days-label days-overdue">${Math.abs(d)}d OVERDUE</span>`;
+  if(d===0) return `<span class="days-label days-today">TODAY</span>`;
+  if(d<=3) return `<span class="days-label days-soon">${d}d</span>`;
+  return `<span class="days-label days-normal">${d}d</span>`;
+}
+
+// ============ COMPUTED ============
+const active = TASKS.filter(t=>t.status!=='Done');
+const done = TASKS.filter(t=>t.status==='Done');
+const blocked = TASKS.filter(t=>t.status==='Blocked');
+const inProg = TASKS.filter(t=>t.status==='In Progress');
+const overdue = active.filter(t=>{let d=daysUntil(t.due);return d!==null&&d<0;});
+const dueToday = active.filter(t=>daysUntil(t.due)===0);
+const dueWeek = active.filter(t=>{let d=daysUntil(t.due);return d!==null&&d>=0&&d<=7;});
+const ranked = [...active].sort((a,b)=>urgencyScore(b)-urgencyScore(a));
+const sprintTasks = TASKS.filter(t=>t.sprint);
+const sprintDone = sprintTasks.filter(t=>t.status==='Done');
+const pct = Math.round((done.length/TASKS.length)*100);
+
+// ============ VIEWS ============
+let chartInstances = [];
+function destroyCharts(){ chartInstances.forEach(c=>c.destroy()); chartInstances=[]; }
+
+function switchView(v){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.querySelectorAll('.view-panel').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('view-'+v).classList.remove('hidden');
+  destroyCharts();
+  if(v==='overview') renderOverview();
+  else if(v==='sprint') renderSprint();
+  else if(v==='timeline') renderTimeline();
+  else if(v==='all') renderAll();
+}
+
+// ---- OVERVIEW ----
+function renderOverview(){
+  const el = document.getElementById('view-overview');
+  el.innerHTML = `
+    <div class="metrics">
+      <div class="metric-card"><div class="mc-top"><div class="mc-icon green">&#10003;</div><div><div class="mc-val">${done.length}/${TASKS.length}</div><div class="mc-label">Completed</div><div class="mc-sub">${pct}% done</div></div></div></div>
+      <div class="metric-card"><div class="mc-top"><div class="mc-icon blue">&#9654;</div><div><div class="mc-val">${inProg.length}</div><div class="mc-label">In Progress</div><div class="mc-sub">${active.filter(t=>t.priority==='High'&&t.status!=='Blocked').length} high priority active</div></div></div></div>
+      <div class="metric-card"><div class="mc-top"><div class="mc-icon red">&#9888;</div><div><div class="mc-val">${blocked.length}</div><div class="mc-label">Blocked</div><div class="mc-sub">Waiting on dependencies</div></div></div></div>
+      <div class="metric-card"><div class="mc-top"><div class="mc-icon yellow">&#9889;</div><div><div class="mc-val">${dueWeek.length}</div><div class="mc-label">Due This Week</div><div class="mc-sub">${dueToday.length} due today</div></div></div></div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card"><h3>By Status</h3><div class="chart-wrap"><canvas id="chartStatus"></canvas></div></div>
+      <div class="chart-card"><h3>By Domain</h3><div class="chart-wrap"><canvas id="chartDomain"></canvas></div></div>
+      <div class="chart-card"><h3>Active — Priority by Domain</h3><div class="chart-wrap"><canvas id="chartPriDomain"></canvas></div></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-header"><span class="sh-icon">&#9889;</span><h3>Attack Order — What to Tackle First</h3></div>
+      <div id="sugList"></div>
+      <button class="show-more" id="sugToggle" onclick="toggleSuggestions()">Show all ${ranked.length} tasks</button>
+    </div>
+
+    <div class="section-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="section-header" style="margin-bottom:0;"><h3>Active Tasks</h3></div>
+        <div class="domain-filters" id="domainFilters"></div>
+      </div>
+      <div id="taskList"></div>
+    </div>
+  `;
+
+  // Charts
+  const c1 = new Chart(document.getElementById('chartStatus'), {
+    type:'doughnut',
+    data:{labels:['Done','In Progress','To Do','Blocked'],datasets:[{data:[done.length,inProg.length,active.filter(t=>t.status==='To Do').length,blocked.length],backgroundColor:['#22c55e','#3b82f6','#6b7280','#ef4444'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}}}}
+  });
+  const c2 = new Chart(document.getElementById('chartDomain'), {
+    type:'doughnut',
+    data:{labels:Object.keys(DOMAIN_COLORS),datasets:[{data:Object.keys(DOMAIN_COLORS).map(d=>TASKS.filter(t=>t.domain===d).length),backgroundColor:Object.values(DOMAIN_COLORS),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}}}}
+  });
+  const domains = ['Kairos','Job Search','School','Personal'];
+  const c3 = new Chart(document.getElementById('chartPriDomain'), {
+    type:'bar',
+    data:{labels:domains,datasets:[
+      {label:'High',data:domains.map(d=>TASKS.filter(t=>t.domain===d&&t.priority==='High'&&t.status!=='Done').length),backgroundColor:'#ef4444'},
+      {label:'Medium',data:domains.map(d=>TASKS.filter(t=>t.domain===d&&t.priority==='Medium'&&t.status!=='Done').length),backgroundColor:'#f59e0b'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',scales:{x:{stacked:true,grid:{color:'#1e1e2e'},ticks:{color:'#6b7280',font:{size:11}}},y:{stacked:true,grid:{display:false},ticks:{color:'#9ca3af',font:{size:11}}}},plugins:{legend:{position:'bottom',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}}}}
+  });
+  chartInstances.push(c1,c2,c3);
+
+  // Suggestions
+  window._sugExpanded = false;
+  renderSuggestions();
+
+  // Domain filters
+  const fEl = document.getElementById('domainFilters');
+  fEl.innerHTML = ['All',...domains].map(d=>`<button class="df-btn ${d==='All'?'active':''}" onclick="filterDomain('${d}')">${d}</button>`).join('');
+  window._domainFilter = 'All';
+  renderTaskList();
+}
+
+function renderSuggestions(){
+  const show = window._sugExpanded ? ranked : ranked.slice(0,5);
+  document.getElementById('sugList').innerHTML = show.map((t,i)=>{
+    const d = daysUntil(t.due);
+    const cls = d!==null&&d<0?'overdue':d===0?'due-today':'';
+    const rc = i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+    return `<div class="sug-item ${cls}">
+      <div class="sug-rank ${rc}">${i+1}</div>
+      <div class="sug-body">
+        <div class="sug-name">${priDot(t.priority)} ${t.name}</div>
+        <div class="sug-meta">${domainTag(t.domain)} ${statusBadge(t.status)} ${daysLabel(d)}</div>
+        <div class="sug-reason">${reason(t)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const btn = document.getElementById('sugToggle');
+  if(btn) btn.textContent = window._sugExpanded ? 'Show less' : `Show all ${ranked.length} tasks`;
+}
+
+function toggleSuggestions(){ window._sugExpanded = !window._sugExpanded; renderSuggestions(); }
+
+function filterDomain(d){
+  window._domainFilter = d;
+  document.querySelectorAll('.df-btn').forEach(b=>b.classList.toggle('active',b.textContent===d));
+  renderTaskList();
+}
+
+function renderTaskList(){
+  const f = window._domainFilter;
+  const list = (f==='All'?active:active.filter(t=>t.domain===f)).sort((a,b)=>{
+    const da=daysUntil(a.due),db=daysUntil(b.due);
+    if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return da-db;
+  });
+  document.getElementById('taskList').innerHTML = list.map(t=>{
+    const d=daysUntil(t.due);
+    return `<div class="task-row">${priDot(t.priority)}<span class="task-name">${t.name}</span>${domainTag(t.domain)} ${statusBadge(t.status)} ${daysLabel(d)}</div>`;
+  }).join('');
+}
+
+// ---- SPRINT ----
+function renderSprint(){
+  const el = document.getElementById('view-sprint');
+  const spPct = Math.round((sprintDone.length/sprintTasks.length)*100);
+  const sorted = [...sprintTasks].sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
+
+  el.innerHTML = `
+    <div class="section-card">
+      <div class="section-header"><span class="sh-icon">&#9873;</span><h3>Kairos MVP Sprint</h3><span style="margin-left:auto;font-size:11px;color:#6b7280;">Feb 7 → Mar 6 (28 days)</span></div>
+      <div class="sprint-progress">
+        <div class="sp-labels"><span>${sprintDone.length}/${sprintTasks.length} tasks</span><span>${spPct}%</span></div>
+        <div class="sp-bar-wrap"><div class="sp-bar-fill" style="width:${spPct}%"></div></div>
+      </div>
+      <div id="sprintList">${sorted.map(t=>{
+        const d=daysUntil(t.due);
+        const cls = t.status==='Done'?'st-done':t.status==='In Progress'?'st-progress':t.status==='Blocked'?'st-blocked':'';
+        const icon = t.status==='Done'?'&#10003;':t.status==='Blocked'?'&#9888;':t.status==='In Progress'?'&#9654;':'&#9675;';
+        const dateStr = t.due ? new Date(t.due).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'No date';
+        return `<div class="sprint-task ${cls}"><span class="st-icon">${icon}</span><div style="flex:1"><div style="font-size:13px;color:#e5e7eb">${t.name}</div><div style="font-size:11px;color:#6b7280">${dateStr} ${d!==null?'('+d+'d)':''}</div></div>${statusBadge(t.status)}</div>`;
+      }).join('')}</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-header"><h3>Critical Path to Demo</h3></div>
+      <div class="crit-path">
+        <div class="cp-node cp-active">Fix Mic</div><span class="cp-arrow">→</span>
+        <div class="cp-node cp-blocked">ElevenLabs Provider</div><span class="cp-arrow">→</span>
+        <div class="cp-node cp-blocked">Wire E2E</div><span class="cp-arrow">→</span>
+        <div class="cp-node cp-pending">Record Demo</div><span class="cp-arrow">→</span>
+        <div class="cp-node cp-pending">Demo to Amico</div>
+      </div>
+      <p style="font-size:11px;color:#6b7280;margin-top:12px;">Mic fix unblocks ElevenLabs → which unblocks E2E testing → which unblocks demo recording → which enables the Amico pitch. This is your $3-10M path.</p>
+    </div>
+
+    <div class="section-card">
+      <div class="section-header"><h3>Sprint Burn-Down</h3></div>
+      <div style="height:220px;"><canvas id="chartBurndown"></canvas></div>
+    </div>
+  `;
+
+  // Burndown chart
+  const totalSprint = sprintTasks.length;
+  const labels = ['Feb 7','Feb 10','Feb 13','Feb 17','Feb 20','Feb 24','Feb 28','Mar 3','Mar 6'];
+  const ideal = labels.map((_,i)=>totalSprint - (totalSprint/(labels.length-1))*i);
+  const actual = [totalSprint - sprintDone.length, null, null, null, null, null, null, null, null];
+  const cb = new Chart(document.getElementById('chartBurndown'),{
+    type:'line',
+    data:{labels, datasets:[
+      {label:'Ideal',data:ideal,borderColor:'#374151',borderDash:[5,5],pointRadius:0,borderWidth:1.5,fill:false},
+      {label:'Actual',data:actual,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.1)',pointRadius:4,pointBackgroundColor:'#a78bfa',borderWidth:2,fill:true,spanGaps:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:'#1e1e2e'},ticks:{color:'#6b7280',font:{size:10}}},y:{beginAtZero:true,max:totalSprint,grid:{color:'#1e1e2e'},ticks:{color:'#6b7280',font:{size:10},stepSize:1}}},plugins:{legend:{position:'bottom',labels:{color:'#6b7280',font:{size:11},boxWidth:10}}}}
+  });
+  chartInstances.push(cb);
+}
+
+// ---- TIMELINE ----
+function renderTimeline(){
+  const el = document.getElementById('view-timeline');
+  const withDue = active.filter(t=>t.due).sort((a,b)=>new Date(a.due)-new Date(b.due));
+  const maxDays = 30;
+
+  el.innerHTML = `
+    <div class="section-card">
+      <div class="section-header"><span class="sh-icon">&#128197;</span><h3>30-Day Timeline</h3><span style="margin-left:auto;font-size:11px;color:#6b7280;">Feb 7 → Mar 8</span></div>
+      <div class="tl-scale"><span>Today</span><span>1 wk</span><span>2 wk</span><span>3 wk</span><span>4 wk</span></div>
+      ${withDue.map(t=>{
+        const d = daysUntil(t.due);
+        const pos = Math.max(0, Math.min(d, maxDays));
+        const w = d<0 ? 100 : Math.max(100-((pos/maxDays)*100), 10);
+        const cls = d<0?'overdue':d===0?'today':t.status==='Blocked'?'blocked':d<=3?'soon':'normal';
+        const label = d<0?'OVERDUE':d===0?'TODAY':d+'d';
+        return `<div class="tl-row"><div class="tl-label" title="${t.name}">${t.name}</div><div class="tl-bar-wrap"><div class="tl-bar ${cls}" style="width:${w}%">${label}</div></div></div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ---- ALL TASKS ----
+function renderAll(){
+  const el = document.getElementById('view-all');
+  const groups = {'In Progress':TASKS.filter(t=>t.status==='In Progress'),'To Do':TASKS.filter(t=>t.status==='To Do'),'Blocked':blocked,'Done':done};
+
+  el.innerHTML = Object.entries(groups).map(([status,tasks])=>{
+    const sorted = tasks.sort((a,b)=>{const da=daysUntil(a.due),db=daysUntil(b.due);if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return -1;return da-db;});
+    return `<div class="section-card">
+      <div class="section-header"><h3>${status} (${tasks.length})</h3></div>
+      ${sorted.map(t=>{const d=daysUntil(t.due);return `<div class="task-row">${priDot(t.priority)}<span class="task-name" style="${status==='Done'?'text-decoration:line-through;color:#6b7280;':''}">${t.name}</span>${domainTag(t.domain)} ${daysLabel(d)}</div>`;}).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ============ INIT ============
+function init(){
+  // Alert banner
+  const ab = document.getElementById('alertBanner');
+  if(overdue.length>0||dueToday.length>0){
+    const cls = overdue.length>0 ? 'alert-red':'alert-yellow';
+    let msg = '';
+    if(overdue.length>0) msg += `<strong style="color:#f87171">${overdue.length} overdue task${overdue.length>1?'s':''}.</strong> `;
+    if(dueToday.length>0) msg += `<strong style="color:#fbbf24">${dueToday.length} due today.</strong> `;
+    msg += '<span style="color:#6b7280">Focus on these first.</span>';
+    ab.innerHTML = `<div class="alert ${cls}"><span class="alert-icon">&#9888;</span><div>${msg}</div></div>`;
+  }
+
+  document.getElementById('lastSync').textContent = 'Synced ' + new Date().toLocaleString();
+  switchView('overview');
+}
+
+init();
+</script>
+</body>
+</html>
