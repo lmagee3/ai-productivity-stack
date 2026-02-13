@@ -54,7 +54,10 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     def _startup_runtime() -> None:
-        start_runtime()
+        # TEMPORARY: Disabled auto-runtime due to startup hang
+        # TODO: Debug news/email/scan blocking on startup
+        pass
+        # start_runtime()
 
     @app.on_event("shutdown")
     def _shutdown_runtime() -> None:
