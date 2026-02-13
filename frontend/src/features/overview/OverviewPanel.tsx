@@ -17,6 +17,7 @@ type OpsNextItem = {
   due_at: string | null;
   urgency: string;
   reason: string;
+  url?: string | null;
 };
 
 type ScanResult = {
@@ -308,7 +309,13 @@ export function OverviewPanel({
                 <div key={task.id} className="sug-item">
                   <div className={`sug-rank r${Math.min(idx + 1, 3)}`}>{idx + 1}</div>
                   <div className="sug-body">
-                    <div className="sug-name">{task.title}</div>
+                    {task.url ? (
+                      <a href={task.url} target="_blank" rel="noopener noreferrer" className="sug-name sug-link">
+                        {task.title}
+                      </a>
+                    ) : (
+                      <div className="sug-name">{task.title}</div>
+                    )}
                     <div className="sug-meta">
                       <span className={domainClass(task.source)}>{task.source}</span>
                       <span className={`badge badge-${task.urgency}`}>{task.urgency}</span>

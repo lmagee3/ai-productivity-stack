@@ -549,6 +549,17 @@ body[data-theme="crt"]::before {
   line-height: 1.35;
 }
 
+.sug-link {
+  text-decoration: none;
+  color: var(--accent-2);
+  transition: opacity 0.15s;
+}
+
+.sug-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
 .sug-meta {
   display: flex;
   gap: 8px;

@@ -7,6 +7,7 @@ from fastapi import APIRouter
 
 from app.core.database import SessionLocal
 from app.models.blackboard_task import BlackboardTask
+from app.models.notion_task import NotionTask
 from app.models.task import Task
 
 router = APIRouter(tags=["ops"])
@@ -76,6 +77,7 @@ def ops_next() -> dict[str, Any]:
                     "urgency": urgency,
                     "priority": "low",
                     "reason": build_reason(urgency, due_at, "low"),
+                    "url": None,
                     "_sort_due": normalize_dt(due_at),
                 }
             )
@@ -92,6 +94,32 @@ def ops_next() -> dict[str, Any]:
                     "urgency": urgency,
                     "priority": task.priority,
                     "reason": build_reason(urgency, due_at, task.priority),
+                    "url": None,
+                    "_sort_due": normalize_dt(due_at),
+                }
+            )
+
+        # Include Notion tasks with live links
+        for task in session.query(NotionTask).all():
+            # Parse due_date string to datetime for urgency calculation
+            due_at = None
+            if task.due_date:
+                try:
+                    due_at = datetime.fromisoformat(task.due_date.replace("Z", "+00:00"))
+                except (ValueError, AttributeError):
+                    pass
+
+            urgency = urgency_bucket(due_at)
+            items.append(
+                {
+                    "id": f"notion:{task.notion_page_id}",
+                    "title": task.task_name,
+                    "source": task.domain.lower() if task.domain else "notion",
+                    "due_at": due_at.isoformat() if due_at else None,
+                    "urgency": urgency,
+                    "priority": task.priority,
+                    "reason": build_reason(urgency, due_at, task.priority),
+                    "url": task.source_url,
                     "_sort_due": normalize_dt(due_at),
                 }
             )
@@ -118,6 +146,7 @@ def ops_next() -> dict[str, Any]:
             "due_at": item["due_at"],
             "urgency": item["urgency"],
             "reason": item["reason"],
+            "url": item["url"],
         }
 
     return {"next": strip(next_item), "alternates": [strip(a) for a in alternates]}
