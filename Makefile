@@ -1,4 +1,4 @@
-.PHONY: setup dev backend frontend health verify verify-offline all one down status
+.PHONY: setup dev backend frontend health verify verify-offline all one down status qa
 
 setup:
 	python3 -m venv backend/.venv
@@ -38,3 +38,6 @@ down:
 
 status:
 	./shell/status.sh
+
+qa:
+	./shell/qa.sh
