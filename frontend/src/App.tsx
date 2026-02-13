@@ -8,6 +8,8 @@ import { OverviewPanel } from './features/overview/OverviewPanel';
 import { DailyBrief } from './features/brief/DailyBrief';
 import { SettingsModal } from './components/SettingsModal';
 import { ScanModal } from './components/ScanModal';
+import { ChatPanel } from './components/ChatPanel';
+import { useChat } from './hooks/useChat';
 
 const STATUS_LABELS: Record<HealthStatus['status'], string> = {
   ok: 'Online',
@@ -16,8 +18,6 @@ const STATUS_LABELS: Record<HealthStatus['status'], string> = {
 };
 
 type ViewMode = 'mission' | 'brief';
-
-const scanTriggers = /scan|files|file|folder|desktop|check my stuff|check my files|look through/i;
 
 export default function App() {
   type AttackItem = {
@@ -38,10 +38,13 @@ export default function App() {
   const [opsNext, setOpsNext] = useState<OpsNext | null>(null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light' | 'crt'>('dark');
-  const [sessionId, setSessionId] = useState<number | null>(null);
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; route_to?: string }>>([]);
-  const [input, setInput] = useState('');
   const [actions, setActions] = useState<ProposedAction[]>([]);
+
+  // Chat hook (replaces inline chat state)
+  const chat = useChat({
+    onScanTrigger: () => setShowScanModal(true),
+    onActivity: (msg) => setActivity((prev) => [...prev, msg]),
+  });
   const [activity, setActivity] = useState<string[]>([]);
   const [scanSummary, setScanSummary] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -336,14 +339,7 @@ export default function App() {
         stale: [`${result.stale_candidates.length} stale candidates identified`],
         junk: [`${result.junk_candidates.length} junk candidates identified`],
       });
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'Scan complete. Results are now visible in Mission Control and Daily Brief.',
-          route_to: 'tool',
-        },
-      ]);
+      // Chat messages now handled by ChatPanel component
       setActivity((prev) => [...prev, `Scan: ${result.scanned} files`]);
     } catch {
       setActivity((prev) => [...prev, 'Scan failed.']);
@@ -379,78 +375,17 @@ export default function App() {
       const result = await ingestEmailFetch(10, 'INBOX');
       const newTasks = result.items.flatMap((item) => item.proposed_tasks);
       setConnectorTasks((prev) => [...prev, ...newTasks]);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: `Inbox sync complete: ${result.count} emails analyzed, ${newTasks.length} proposed tasks.`,
-          route_to: 'tool',
-        },
-      ]);
+      // Chat messages now handled by ChatPanel component
       setActivity((prev) => [...prev, `Inbox sync: ${result.count} emails`]);
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'unknown error';
-      setMessages((prev) => [...prev, { role: 'assistant', content: `Inbox sync failed: ${detail}`, route_to: 'tool' }]);
+      // Chat messages now handled by ChatPanel component
       setActivity((prev) => [...prev, 'Inbox sync failed.']);
     }
   };
 
-  const handleChatSubmit = async () => {
-    if (!input.trim()) return;
-    const nextMessage = input.trim();
-    const wantsScan = scanTriggers.test(nextMessage);
-    setMessages((prev) => [...prev, { role: 'user', content: nextMessage }]);
-    setInput('');
-    const normalized = nextMessage.trim().toLowerCase();
-    if (
-      normalized === '/ingest/email/fetch' ||
-      normalized.includes('sync inbox') ||
-      normalized.includes('fetch latest emails') ||
-      normalized.includes('sync gmail')
-    ) {
-      await syncInbox();
-      return;
-    }
-    const urlMatch = nextMessage.match(/https?:\/\/\S+/i);
-    if (urlMatch) {
-      try {
-        const ingest = await ingestWeb(urlMatch[0]);
-        setConnectorTasks((prev) => [...prev, ...ingest.proposed_tasks]);
-        setMessages((prev) => [...prev, { role: 'assistant', content: `Web ingest complete: ${ingest.summary}`, route_to: 'tool' }]);
-        setActivity((prev) => [...prev, `Web ingest: ${ingest.proposed_tasks.length} proposed tasks`]);
-      } catch {
-        setActivity((prev) => [...prev, 'Web ingest failed.']);
-      }
-      return;
-    }
-    if (nextMessage.toLowerCase().startsWith('email:')) {
-      const body = nextMessage.slice(6).trim();
-      if (body) {
-        try {
-          const ingest = await ingestEmail('Email from chat', body);
-          setConnectorTasks((prev) => [...prev, ...ingest.proposed_tasks]);
-          setMessages((prev) => [...prev, { role: 'assistant', content: `Email ingest complete: ${ingest.summary}`, route_to: 'tool' }]);
-          setActivity((prev) => [...prev, `Email ingest: ${ingest.proposed_tasks.length} proposed tasks`]);
-        } catch {
-          setActivity((prev) => [...prev, 'Email ingest failed.']);
-        }
-      }
-      return;
-    }
-    if (wantsScan) {
-      setShowScanModal(true);
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Opening scan options. Choose Desktop or a folder.', route_to: 'tool' }]);
-      return;
-    }
-    try {
-      const response = await sendChatMessage(nextMessage, sessionId ?? undefined);
-      setSessionId(response.session_id);
-      setMessages((prev) => [...prev, { role: 'assistant', content: response.assistant_message, route_to: response.route_to }]);
-      setActions((prev) => [...prev, ...response.proposed_actions]);
-    } catch {
-      setActivity((prev) => [...prev, 'Chat error: failed to reach backend.']);
-    }
-  };
+  // REPLACED BY useChat hook - keeping for reference during migration
+  // const handleChatSubmit = async () => { ... }
 
   const totalTasks = ops?.tasks.total ?? 0;
   const overdueTasks = ops?.tasks.overdue ?? 0;
@@ -631,56 +566,31 @@ export default function App() {
             )}
             </section>
             <aside className="mission-chat-rail">
-              <div className="chat-panel chat-panel-stretch">
-                <div className="chat-panel-header">Local Brain Chat</div>
-                <div className="chat-window chat-window-tall">
-                  {messages.length === 0 ? (
-                    <p className="meta">Ask module_09 to scan your desktop or plan your next move.</p>
-                  ) : (
-                    messages.map((msg, idx) => (
-                      <div key={idx} className={`chat-bubble ${msg.role}`}>
-                        <span className="chat-role">{msg.role}</span>
-                        {msg.role === 'assistant' && msg.route_to ? (
-                          <span className="route-badge">{msg.route_to === 'local_fast' ? 'FAST' : msg.route_to === 'local_deep' ? 'DEEP' : msg.route_to === 'cloud_pending_approval' ? 'CLOUD PENDING APPROVAL' : msg.route_to.toUpperCase()}</span>
-                        ) : null}
-                        <p>{msg.content}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="chat-actions">
-                  <input
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    placeholder="Ask module_09 to scan files, summarize, or plan."
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        void handleChatSubmit();
-                      }
-                    }}
-                  />
-                  <button onClick={() => void handleChatSubmit()}>Send</button>
-                </div>
-                {isScanning ? (
-                  <div className="scan-progress">
-                    <div className="scan-progress-bar" />
-                    <div className="meta">Scanning in progress... {scanElapsedS}s elapsed</div>
-                  </div>
-                ) : null}
-                {scanSummary ? <div className="chat-meta">{scanSummary}</div> : null}
-              </div>
+              <ChatPanel
+                messages={chat.messages}
+                input={chat.input}
+                onInputChange={chat.setInput}
+                onSubmit={chat.handleSubmit}
+                onScanTrigger={() => setShowScanModal(true)}
+                onSyncTrigger={async () => {
+                  try {
+                    await syncInbox();
+                  } catch {
+                    setActivity((prev) => [...prev, 'Notion sync failed']);
+                  }
+                }}
+                isSubmitting={chat.isSubmitting}
+                isScanning={isScanning}
+                scanElapsedS={scanElapsedS}
+              />
 
-              <div className="chat-panel">
+              {/* Proposed Actions panel below chat */}
+              <div className="chat-panel" style={{ marginTop: '16px' }}>
                 <div className="chat-panel-header">Proposed Actions</div>
-                <div className="chat-actions quick-actions">
-                  <button className="ghost" onClick={() => setShowScanModal(true)}>Run Scan</button>
-                  <button className="ghost" onClick={() => void syncInbox()}>Sync Inbox</button>
-                </div>
                 {actions.length === 0 ? (
-                  <p className="meta">No proposed actions yet.</p>
+                  <p className="meta" style={{ padding: '16px' }}>No proposed actions yet.</p>
                 ) : (
-                  <ul className="list">
+                  <ul className="list" style={{ padding: '12px' }}>
                     {actions.map((action) => (
                       <li key={action.id}>
                         <strong>{action.tool_name}</strong>
