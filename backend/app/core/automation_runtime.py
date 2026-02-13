@@ -83,9 +83,9 @@ def _run_news_refresh() -> None:
     STATE.news_last_error = None
 
 
-async def _run_notion_sync() -> None:
+def _run_notion_sync() -> None:
     with SessionLocal() as db:
-        result = await sync_notion_tasks(db)
+        result = asyncio.run(sync_notion_tasks(db))
         STATE.notion_last_synced = result.get("synced", 0)
         STATE.notion_last_run = _now_iso()
         if result.get("errors"):
@@ -128,7 +128,7 @@ def _loop() -> None:
         # Notion sync every 4 hours (240 min)
         if now >= next_notion:
             try:
-                asyncio.run(_run_notion_sync())
+                _run_notion_sync()
             except Exception as exc:
                 STATE.notion_last_error = str(exc)
             next_notion = now + 240 * 60
@@ -148,8 +148,8 @@ def run_news_refresh_once() -> None:
     _run_news_refresh()
 
 
-async def run_notion_sync_once() -> None:
-    await _run_notion_sync()
+def run_notion_sync_once() -> None:
+    _run_notion_sync()
 
 
 def start_runtime() -> None:
