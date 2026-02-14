@@ -50,6 +50,10 @@ export function OverviewPanel({
   const [showAllAttack, setShowAllAttack] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
 
+  // Get current theme for chart colors
+  const theme = document.body.dataset.theme || 'dark';
+  const isCRT = theme === 'crt';
+
   // Chart refs
   const statusChartRef = useRef<HTMLCanvasElement>(null);
   const sourceChartRef = useRef<HTMLCanvasElement>(null);
@@ -88,13 +92,18 @@ export function OverviewPanel({
     if (statusChartInstance.current) statusChartInstance.current.destroy();
 
     const { statusCounts } = chartData;
+    const statusColors = isCRT
+      ? ['#00ff7b', '#60ffa6', '#7edc8f', '#0b3b1c'] // CRT: all green shades
+      : ['#22c55e', '#3b82f6', '#6b7280', '#ef4444']; // Dark/Light: green, blue, grey, red
+    const labelColor = isCRT ? '#7edc8f' : '#6b7280';
+
     statusChartInstance.current = new Chart(statusChartRef.current, {
       type: 'doughnut',
       data: {
         labels: ['Done', 'In Progress', 'To Do', 'Blocked'],
         datasets: [{
           data: [statusCounts.done, statusCounts.progress, statusCounts.todo, statusCounts.blocked],
-          backgroundColor: ['#22c55e', '#3b82f6', '#6b7280', '#ef4444'],
+          backgroundColor: statusColors,
           borderWidth: 0,
         }],
       },
@@ -103,13 +112,13 @@ export function OverviewPanel({
         maintainAspectRatio: false,
         cutout: '60%',
         plugins: {
-          legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+          legend: { position: 'bottom', labels: { color: labelColor, font: { size: 11 }, boxWidth: 10, padding: 8 } },
         },
       },
     });
 
     return () => { statusChartInstance.current?.destroy(); };
-  }, [chartData, prefs.charts]);
+  }, [chartData, prefs.charts, isCRT]);
 
   // Source doughnut chart
   useEffect(() => {
@@ -119,7 +128,10 @@ export function OverviewPanel({
     const { sourceCounts } = chartData;
     const labels = Object.keys(sourceCounts);
     const data = Object.values(sourceCounts);
-    const DOMAIN_COLORS = ['#a78bfa', '#60a5fa', '#fbbf24', '#22d3ee', '#34d399', '#fb923c', '#f472b6'];
+    const DOMAIN_COLORS = isCRT
+      ? ['#00ff7b', '#60ffa6', '#7edc8f', '#00f09d', '#0b3b1c', '#0f4a22'] // CRT: green spectrum only
+      : ['#a78bfa', '#60a5fa', '#fbbf24', '#22d3ee', '#34d399', '#fb923c', '#f472b6']; // Dark/Light: varied colors
+    const labelColor = isCRT ? '#7edc8f' : '#6b7280';
 
     sourceChartInstance.current = new Chart(sourceChartRef.current, {
       type: 'doughnut',
@@ -136,13 +148,13 @@ export function OverviewPanel({
         maintainAspectRatio: false,
         cutout: '60%',
         plugins: {
-          legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+          legend: { position: 'bottom', labels: { color: labelColor, font: { size: 11 }, boxWidth: 10, padding: 8 } },
         },
       },
     });
 
     return () => { sourceChartInstance.current?.destroy(); };
-  }, [chartData, prefs.charts]);
+  }, [chartData, prefs.charts, isCRT]);
 
   // Focus load horizontal bar chart
   useEffect(() => {
@@ -154,13 +166,19 @@ export function OverviewPanel({
     const highData = labels.map((l) => focusCounts[l].high);
     const medData = labels.map((l) => focusCounts[l].medium);
 
+    const highColor = isCRT ? '#00ff7b' : '#ef4444'; // CRT: bright green, else red
+    const medColor = isCRT ? '#60ffa6' : '#f59e0b'; // CRT: medium green, else amber
+    const gridColor = isCRT ? '#0b3b1c' : '#1e1e2e';
+    const tickColor = isCRT ? '#7edc8f' : '#6b7280';
+    const tickColorAlt = isCRT ? '#7edc8f' : '#9ca3af';
+
     focusChartInstance.current = new Chart(focusChartRef.current, {
       type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: 'High', data: highData, backgroundColor: '#ef4444' },
-          { label: 'Medium', data: medData, backgroundColor: '#f59e0b' },
+          { label: 'High', data: highData, backgroundColor: highColor },
+          { label: 'Medium', data: medData, backgroundColor: medColor },
         ],
       },
       options: {
@@ -168,17 +186,17 @@ export function OverviewPanel({
         maintainAspectRatio: false,
         indexAxis: 'y',
         scales: {
-          x: { stacked: true, grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280' } },
-          y: { stacked: true, grid: { display: false }, ticks: { color: '#9ca3af' } },
+          x: { stacked: true, grid: { color: gridColor }, ticks: { color: tickColor } },
+          y: { stacked: true, grid: { display: false }, ticks: { color: tickColorAlt } },
         },
         plugins: {
-          legend: { position: 'bottom', labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 10, padding: 8 } },
+          legend: { position: 'bottom', labels: { color: tickColor, font: { size: 11 }, boxWidth: 10, padding: 8 } },
         },
       },
     });
 
     return () => { focusChartInstance.current?.destroy(); };
-  }, [chartData, prefs.charts]);
+  }, [chartData, prefs.charts, isCRT]);
 
   const attackSources = useMemo(() => {
     const uniq = Array.from(new Set(attackOrder.map((task) => task.source).filter(Boolean)));

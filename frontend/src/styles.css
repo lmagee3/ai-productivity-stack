@@ -139,6 +139,49 @@ body[data-theme="crt"]::before {
   opacity: 0.3;
 }
 
+/* CRT theme: all badges and accents use green spectrum */
+body[data-theme="crt"] .badge-critical { color: #00ff7b; border-color: #00ff7b; }
+body[data-theme="crt"] .badge-today { color: #60ffa6; border-color: #60ffa6; }
+body[data-theme="crt"] .badge-tomorrow { color: #7edc8f; border-color: #7edc8f; }
+body[data-theme="crt"] .badge-week { color: #00f09d; border-color: #00f09d; }
+body[data-theme="crt"] .badge-later { color: #0f4a22; border-color: #0f4a22; }
+
+body[data-theme="crt"] .badge-domain-kairos { color: #00ff7b; }
+body[data-theme="crt"] .badge-domain-job { color: #60ffa6; }
+body[data-theme="crt"] .badge-domain-school { color: #7edc8f; }
+body[data-theme="crt"] .badge-domain-personal { color: #00f09d; }
+body[data-theme="crt"] .badge-domain-email { color: #0f4a22; }
+body[data-theme="crt"] .badge-domain-web { color: #0b3b1c; }
+body[data-theme="crt"] .badge-domain-files { color: #60ffa6; }
+
+body[data-theme="crt"] .domain-tag {
+  background: #0a1f0a;
+  color: #7edc8f;
+  border-color: #0b3b1c;
+}
+
+body[data-theme="crt"] .pri-dot.high { background: #00ff7b; }
+body[data-theme="crt"] .pri-dot.med { background: #60ffa6; }
+body[data-theme="crt"] .pri-dot.low { background: #0f4a22; }
+
+/* CRT: metric card icons all use green spectrum */
+body[data-theme="crt"] .mc-icon.green,
+body[data-theme="crt"] .mc-icon.blue,
+body[data-theme="crt"] .mc-icon.red,
+body[data-theme="crt"] .mc-icon.yellow {
+  background: #0a1f0a;
+  color: #00ff7b;
+}
+
+/* CRT: stock changes use green shades */
+body[data-theme="crt"] .stock-change.up { color: #00ff7b; }
+body[data-theme="crt"] .stock-change.down { color: #7edc8f; }
+
+/* CRT: news tone indicators use green shades */
+body[data-theme="crt"] .news-item.tone-up { border-left-color: #00ff7b; }
+body[data-theme="crt"] .news-item.tone-alert { border-left-color: #60ffa6; }
+body[data-theme="crt"] .news-item.tone-down { border-left-color: #0f4a22; }
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -1353,6 +1396,10 @@ body[data-theme="crt"]::before {
   stroke: #6b7280;
   stroke-width: 1.5;
   stroke-dasharray: 3 2;
+}
+
+body[data-theme="crt"] .burndown-ideal {
+  stroke: #0f4a22;
 }
 
 .burndown-actual {
