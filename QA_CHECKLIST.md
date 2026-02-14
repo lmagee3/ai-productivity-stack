@@ -21,6 +21,9 @@ Use this checklist before merging or tagging a release.
 - [ ] `GET /ops/next` returns 200 (no naive/aware datetime errors).
 - [ ] `POST /runtime/trigger` returns 200 for `news`.
 - [ ] `POST /notion/sync` route reachable (success or configured error, not crash).
+- [ ] `GET /market/quotes` returns valid JSON response shape.
+- [ ] `GET /weather/current` returns valid JSON response shape.
+- [ ] `GET /tools/web-search?q=...` returns structured results and provider name.
 
 ## 4) Runtime/Scheduler Observability
 - [ ] `/status.runtime` exposes `runtime_started_at` and `runtime_heartbeat_at`.
@@ -31,11 +34,13 @@ Use this checklist before merging or tagging a release.
 - [ ] No unrealistic due dates persisted from ingestion.
 - [ ] Duplicate task generation is bounded by dedupe logic.
 - [ ] `/ops/next` results are stable and sorted as expected.
+- [ ] `tasks` with `due_date < 2025-01-01` are either absent or have `due_date = null`.
 
-## 6) Finance/Weather Stub Contract
-- [ ] `GET /market/quotes` returns a stable JSON stub shape.
-- [ ] `GET /weather/current` returns a stable JSON stub shape.
-- [ ] Stub response includes selected provider metadata and `stub: true`.
+## 6) API Schema Validation
+- [ ] `/status` contains required keys (`runtime`, `last_llm_latency_ms`, `last_llm_error`).
+- [ ] `/market/quotes` contains (`provider`, `symbols`, `quotes`, `updated_at`).
+- [ ] `/weather/current` contains (`provider`, `location`, `temperature`, `updated_at`).
+- [ ] `/tools/web-search` contains (`provider`, `query`, `results`, `updated_at`).
 
 ## 7) Launch Flow
 - [ ] `./run.sh` starts backend + desktop shell.
@@ -45,4 +50,3 @@ Use this checklist before merging or tagging a release.
 ## One-command QA
 - Run:
   - `make qa`
-

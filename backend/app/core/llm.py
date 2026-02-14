@@ -47,12 +47,10 @@ class LocalProvider:
 
     def __init__(self) -> None:
         settings = get_settings()
-        base = settings.LOCAL_LLM_BASE_URL or settings.OLLAMA_BASE_URL
-        if base:
-            base = base.rstrip("/")
-            if not base.endswith("/v1"):
-                base = f"{base}/v1"
-        self.base_url = base
+        self.openai_base_url = (settings.LOCAL_LLM_BASE_URL or "").rstrip("/") or None
+        if self.openai_base_url and not self.openai_base_url.endswith("/v1"):
+            self.openai_base_url = f"{self.openai_base_url}/v1"
+        self.ollama_base_url = (settings.OLLAMA_BASE_URL or "").rstrip("/") or None
         self.model = settings.LOCAL_LLM_MODEL or settings.OLLAMA_MODEL or settings.LOCAL_FAST_MODEL
         self.fast_model = settings.LOCAL_FAST_MODEL or self.model
         self.deep_model = settings.LOCAL_DEEP_MODEL or self.model
@@ -66,34 +64,77 @@ class LocalProvider:
         return self._generate_with_model(prompt, model)
 
     def _generate_with_model(self, prompt: str, model: str) -> str:
-        if not self.base_url:
+        if not self.openai_base_url and not self.ollama_base_url:
             return self._stub_response(prompt)
 
         start_time = time.monotonic()
+        errors: list[str] = []
         try:
-            response = httpx.post(
-                f"{self.base_url.rstrip('/')}/chat/completions",
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": "Return only the requested output."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "temperature": 0.2,
-                },
-                timeout=self.timeout,
-            )
-            response.raise_for_status()
-            data = response.json()
-            content = data["choices"][0]["message"]["content"]
-            _record_latency(start_time)
-            _llm_state.last_llm_error = None
-            return content
+            if self.openai_base_url:
+                response = httpx.post(
+                    f"{self.openai_base_url}/chat/completions",
+                    json={
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": "Return only the requested output."},
+                            {"role": "user", "content": prompt},
+                        ],
+                        "temperature": 0.2,
+                    },
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                _record_latency(start_time)
+                _llm_state.last_llm_error = None
+                return content
         except Exception as exc:
-            _record_latency(start_time)
-            _record_error(exc)
-            logger.warning("Local LLM request failed, falling back to stub", exc_info=exc)
-            return self._stub_response(prompt)
+            errors.append(f"openai-compatible failed: {exc}")
+
+        try:
+            if self.ollama_base_url:
+                response = httpx.post(
+                    f"{self.ollama_base_url}/api/chat",
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "stream": False,
+                        "options": {"temperature": 0.2},
+                    },
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                content = data.get("message", {}).get("content")
+                if content:
+                    _record_latency(start_time)
+                    _llm_state.last_llm_error = None
+                    return content
+        except Exception as exc:
+            errors.append(f"ollama /api/chat failed: {exc}")
+
+        try:
+            if self.ollama_base_url:
+                response = httpx.post(
+                    f"{self.ollama_base_url}/api/generate",
+                    json={"model": model, "prompt": prompt, "stream": False, "options": {"temperature": 0.2}},
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                content = data.get("response")
+                if content:
+                    _record_latency(start_time)
+                    _llm_state.last_llm_error = None
+                    return content
+        except Exception as exc:
+            errors.append(f"ollama /api/generate failed: {exc}")
+
+        _record_latency(start_time)
+        _record_error("; ".join(errors) if errors else "unknown local llm error")
+        logger.warning("Local LLM request failed, falling back to stub: %s", errors)
+        return self._stub_response(prompt)
 
     def generate_json(self, prompt: str) -> dict[str, Any]:
         raw = self.generate(prompt)

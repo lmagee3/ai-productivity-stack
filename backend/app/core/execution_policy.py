@@ -68,6 +68,7 @@ def enforce_tool_execution(tool_name: str, approved: bool) -> PolicyDecision:
         "ops.summary": ("low", False),
         "task.create": ("medium", True),
         "notify.send": ("high", True),
+        "web.search": ("low", False),
     }
     if tool_name not in tool_policy:
         return PolicyDecision(False, "tool.denied", f"Tool not allowed: {tool_name}", "high")
