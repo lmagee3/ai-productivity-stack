@@ -518,8 +518,12 @@ export default function App() {
                     <path d={linePath(burndown.actual)} className="burndown-actual" />
                   </svg>
                   <div className="burndown-legend">
-                    <span><i className="dot ideal" /> Ideal</span>
-                    <span><i className="dot actual" /> Actual</span>
+                    <span>
+                      <i className="dot ideal" /> Ideal
+                    </span>
+                    <span>
+                      <i className="dot actual" /> Actual
+                    </span>
                   </div>
                 </div>
               </div>
