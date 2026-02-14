@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter
@@ -17,6 +18,10 @@ from app.api.routes.ops import ops_summary
 from app.api.routes.ops_next import ops_next
 
 router = APIRouter(tags=["brain"])
+
+# Load MAGE system prompt once at module level
+MAGE_PROMPT_PATH = Path(__file__).parent.parent.parent / "prompts" / "mage_system.txt"
+MAGE_SYSTEM_PROMPT = MAGE_PROMPT_PATH.read_text() if MAGE_PROMPT_PATH.exists() else "You are MAGE."
 
 
 class BrainChatRequest(BaseModel):
@@ -93,10 +98,9 @@ def brain_chat(payload: BrainChatRequest) -> BrainChatResponse:
     route_to = settings.CLOUD_FALLBACK_PROVIDER if use_cloud else ("local_deep" if wants_heavy_reasoning else "local_fast")
 
     prompt = (
-        "You are the module_09 brain. Be concise and safe. Use the context to answer. "
-        "Do not execute actions. Summarize and propose next steps.\n\n"
-        f"User message: {payload.message}\n\n"
-        f"Context: {json.dumps(context)}"
+        f"{MAGE_SYSTEM_PROMPT}\n\n"
+        f"## Current Context\n{json.dumps(context, indent=2)}\n\n"
+        f"## User Request\n{payload.message}"
     )
 
     if hasattr(provider, "generate_routed"):

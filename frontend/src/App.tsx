@@ -396,6 +396,20 @@ export default function App() {
   const briefTotal = briefTasks.length;
   const briefRemaining = briefTotal - briefDone;
   const briefPct = briefTotal === 0 ? 0 : Math.round((briefDone / briefTotal) * 100);
+
+  // Sprint status breakdown
+  const sprintByStatus = useMemo(() => {
+    const counts = { done: 0, progress: 0, todo: 0, blocked: 0 };
+    briefTasks.forEach((task) => {
+      const isDone = briefChecks[task.id];
+      if (isDone) counts.done++;
+      else if (task.urgency === 'critical' || task.urgency === 'today') counts.progress++;
+      else if (task.badge.toLowerCase().includes('blocked')) counts.blocked++;
+      else counts.todo++;
+    });
+    return counts;
+  }, [briefTasks, briefChecks]);
+
   const burndown = useMemo(() => {
     const points = 8;
     const ideal = Array.from({ length: points }, (_, i) => Math.max(0, briefTotal - (briefTotal * i) / (points - 1)));
@@ -511,6 +525,27 @@ export default function App() {
                 </div>
                 <div className="sp-bar-wrap">
                   <div className="sp-bar-fill" style={{ width: `${briefPct}%` }} />
+                </div>
+                <div className="sprint-status-breakdown" style={{
+                  display: 'flex',
+                  gap: '12px',
+                  fontSize: '11px',
+                  color: 'var(--muted)',
+                  marginTop: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <span>
+                    <span style={{ color: '#22c55e' }}>●</span> Done: {sprintByStatus.done}
+                  </span>
+                  <span>
+                    <span style={{ color: '#3b82f6' }}>●</span> In Progress: {sprintByStatus.progress}
+                  </span>
+                  <span>
+                    <span style={{ color: '#6b7280' }}>●</span> To Do: {sprintByStatus.todo}
+                  </span>
+                  <span>
+                    <span style={{ color: '#ef4444' }}>●</span> Blocked: {sprintByStatus.blocked}
+                  </span>
                 </div>
                 <div className="burndown-graph" style={{ marginTop: 14 }}>
                   <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="burndown-svg">

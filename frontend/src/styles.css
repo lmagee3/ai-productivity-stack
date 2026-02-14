@@ -182,6 +182,12 @@ body[data-theme="crt"] .news-item.tone-up { border-left-color: #00ff7b; }
 body[data-theme="crt"] .news-item.tone-alert { border-left-color: #60ffa6; }
 body[data-theme="crt"] .news-item.tone-down { border-left-color: #0f4a22; }
 
+/* CRT: sprint status breakdown dots use green spectrum */
+body[data-theme="crt"] .sprint-status-breakdown span:nth-child(1) span { color: #00ff7b !important; }
+body[data-theme="crt"] .sprint-status-breakdown span:nth-child(2) span { color: #60ffa6 !important; }
+body[data-theme="crt"] .sprint-status-breakdown span:nth-child(3) span { color: #7edc8f !important; }
+body[data-theme="crt"] .sprint-status-breakdown span:nth-child(4) span { color: #0f4a22 !important; }
+
 ::-webkit-scrollbar {
   width: 6px;
 }
