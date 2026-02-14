@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     AUTO_EMAIL_SYNC_INTERVAL_MIN: int = 60
     AUTO_EMAIL_SYNC_LIMIT: int = 10
     AUTO_NEWS_REFRESH_MIN: int = 60
+    MARKET_PROVIDER: str = "alphavantage"
+    MARKET_WATCHLIST: str = "SPY,QQQ,AAPL,MSFT,NVDA"
+    ALPHAVANTAGE_API_KEY: str | None = None
+    WEATHER_PROVIDER: str = "openweathermap"
+    WEATHER_LOCATION: str = "Batangas,PH"
+    OPENWEATHERMAP_API_KEY: str | None = None
+    WEB_SEARCH_PROVIDER: str = "duckduckgo"
+    SEARXNG_BASE_URL: str | None = None
+    BRAVE_SEARCH_API_KEY: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

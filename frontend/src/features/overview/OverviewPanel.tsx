@@ -50,9 +50,18 @@ export function OverviewPanel({
   const [showAllAttack, setShowAllAttack] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
 
-  // Get current theme for chart colors
-  const theme = document.body.dataset.theme || 'dark';
+  // Get current theme for chart colors (reactive to theme changes)
+  const [theme, setTheme] = useState(() => document.body.dataset.theme || 'dark');
   const isCRT = theme === 'crt';
+
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.dataset.theme || 'dark');
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Chart refs
   const statusChartRef = useRef<HTMLCanvasElement>(null);
