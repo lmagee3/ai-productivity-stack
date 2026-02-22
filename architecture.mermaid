@@ -1,0 +1,201 @@
+flowchart TB
+    subgraph Command["🎯 COMMAND LAYER"]
+        Lawrence["👤 Lawrence Magee<br/>(Human-in-the-Loop)<br/>Approvals | Org Decisions"]
+        Opus["🧠 Claude Cowork — Opus<br/>(COO / Product Owner)<br/>Strategy | Architecture | Vision | Sprint Planning<br/>✓ All Product Decisions"]
+
+        Lawrence -->|"Monthly Briefs"| Opus
+        Lawrence -->|"Approves Spending & Legal"| Opus
+        Opus -->|"Daily Briefs<br/>Notion Command Post"| Lawrence
+        Opus -->|"Strategic Recommendations"| Lawrence
+    end
+
+    subgraph Execution["⚙️ EXECUTION LAYER"]
+        Sonnet["⚡ Sonnet / Claude Code<br/>(Product Implementation)<br/>Frontend | UI/UX | Components<br/>Feature Implementation"]
+
+        Codex["🔌 Codex / OpenAI<br/>(Infrastructure & Backend)<br/>API Routes | Database | DevOps<br/>Takes Specs from Opus"]
+
+        OpenClaw["🦅 OpenClaw<br/>(Local Operations)<br/>File Operations | Env Setup<br/>Machine Coordination"]
+
+        Opus -->|"Product Spec"| Sonnet
+        Opus -->|"Backend Spec + Architecture"| Codex
+        Opus -->|"File/Ops Tasks"| OpenClaw
+
+        Sonnet <-->|"Handoff Docs"| Codex
+    end
+
+    subgraph Quality["✅ QUALITY LAYER"]
+        Antigravity["🔍 Antigravity / Google IDE<br/>(QA & Code Review)<br/>Independent Commit Review<br/>Bug Detection | Security Scanning<br/>⚠️ Review-Only | No Commits"]
+
+        Sonnet -->|"All Commits"| Antigravity
+        Codex -->|"All Commits"| Antigravity
+        Antigravity -->|"Review Findings<br/>Severity Triage"| Opus
+    end
+
+    subgraph Research["🔬 RESEARCH LAYER"]
+        ChatGPT["💬 ChatGPT / Atlas<br/>(Research & Data Ingestion)<br/>Web Crawling | Notion Population<br/>MBA Task Extraction | Analysis"]
+
+        Gemini["🎯 Gemini<br/>(Market Research)<br/>Competitive Analysis<br/>Market Sizing | Industry Trends"]
+
+        Copilot["🔧 Copilot / GitHub<br/>(IDE Assistant)<br/>Xcode Integration<br/>In-Editor Suggestions"]
+
+        Eve["📋 Eve<br/>(AI PM & Workflow)<br/>Task Tracking | Cycle Planning<br/>Priority Management"]
+
+        Opus -->|"Research Requests"| ChatGPT
+        Opus -->|"Market Analysis Tasks"| Gemini
+        Copilot -->|"Passive IDE Support"| Sonnet
+        Eve -->|"Task Visibility"| Opus
+    end
+
+    subgraph Products["📦 PRODUCTS"]
+        Module09["🖥️ module_09<br/>(Tauri Desktop App)<br/>AI Command Center<br/>Rust | React | FastAPI | Ollama"]
+
+        Kairos["📱 Kairos<br/>(iOS Mental Health)<br/>Voice-First Pre-Therapy AI<br/>Swift | Claude API | ElevenLabs"]
+
+        ChaosMon["🛠️ Chaos Monk<br/>(Developer Tools)<br/>MCP Connectors | Plugins<br/>Revenue Engine"]
+
+        Device01["🖲️ device_01<br/>(Local AI Hardware)<br/>Bundled Ollama + GPU<br/>Concept Stage"]
+
+        Opus -->|"Drives Vision & Roadmap"| Module09
+        Opus -->|"Drives Vision & Roadmap"| Kairos
+        Opus -->|"Drives Vision & Roadmap"| ChaosMon
+        Opus -->|"Drives Vision & Roadmap"| Device01
+    end
+
+    subgraph Module09Arch["🖥️ module_09 INTERNAL ARCHITECTURE"]
+        TauriShell["Tauri Shell<br/>(Rust Runtime)<br/>Secure IPC | Window Mgmt"]
+
+        ReactFE["React Frontend<br/>(TypeScript)<br/>UI Components<br/>State Management<br/>Mission Control Dashboard"]
+
+        FastAPIBE["FastAPI Backend<br/>(Python)<br/>REST Endpoints<br/>Task Scheduler<br/>Notion Sync Logic"]
+
+        LocalDB["SQLite/PostgreSQL<br/>(Source of Truth)<br/>Tasks | Agents<br/>Local Data"]
+
+        Ollama["Ollama<br/>(Local LLM)<br/>Gemma/Mistral<br/>Classification | Routing"]
+
+        TauriShell <-->|"IPC Bridge"| ReactFE
+        TauriShell <-->|"Process Invoke"| FastAPIBE
+        ReactFE <-->|"HTTP REST"| FastAPIBE
+        FastAPIBE <-->|"Query/Sync"| LocalDB
+        FastAPIBE -->|"Inference"| Ollama
+    end
+
+    subgraph KairosArch["📱 KAIROS INTERNAL ARCHITECTURE"]
+        SwiftUI["SwiftUI iOS App<br/>(Swift 5.9)<br/>Voice Input | Chat UI<br/>Therapist Matcher"]
+
+        KairosLogic["Kairos Logic Layer<br/>(Swift Backend)<br/>Conversation Flow<br/>API Orchestration"]
+
+        ClaudeAPI["Claude API<br/>(Anthropic)<br/>Haiku for Therapy<br/>Text Understanding"]
+
+        ElevenLabs["ElevenLabs TTS<br/>(Voice Synthesis)<br/>Natural Speech<br/>10K chars/mo free tier"]
+
+        SwiftUI <-->|"State"| KairosLogic
+        KairosLogic -->|"API Calls"| ClaudeAPI
+        KairosLogic -->|"Voice Synthesis"| ElevenLabs
+        ClaudeAPI -->|"Therapist Match"| KairosLogic
+    end
+
+    subgraph DataInfra["💾 DATA INFRASTRUCTURE"]
+        LocalSQLite["Local SQLite<br/>(Source of Truth)<br/>No Cloud Lock-In<br/>All Sensitive Data"]
+
+        NotionDB["Notion<br/>(Sync Target)<br/>Task Triage<br/>Command Post<br/>Agent Assignments"]
+
+        NotionDocs["Notion DBs<br/>• Productivity Dashboard<br/>• Email Action Items<br/>• Daily Briefs<br/>• Comms & Context"]
+
+        OllamaServer["Ollama Server<br/>(Local Inference)<br/>Gemma/Mistral<br/>Classification Tasks"]
+
+        RemoteAPIs["Remote APIs<br/>• Claude API<br/>• ElevenLabs<br/>• GitHub API<br/>• Google APIs"]
+
+        LocalSQLite <-->|"Bidirectional Sync"| NotionDB
+        NotionDB -.->|"References"| NotionDocs
+        OllamaServer -->|"Query"| LocalSQLite
+        RemoteAPIs -->|"API Calls"| FastAPIBE
+    end
+
+    subgraph Communications["📡 COMMUNICATION & HANDOFFS"]
+        ClaudeMD["CLAUDE.md<br/>(Context Database)<br/>Memory | Config<br/>Agent Roster | Brand Arch"]
+
+        HandoffDocs["Handoff Docs<br/>(module_09/handoffs/)<br/>Specs | Briefs<br/>Codex Backbrief | Architecture"]
+
+        CommandPost["Notion Command Post<br/>(Daily Briefs DB)<br/>Opus writes briefs<br/>Lawrence reads orders<br/>Agent task assignments"]
+
+        EmailBriefs["Module_09 Email Automation<br/>(Pending SMTP Setup)<br/>Daily Brief Push<br/>Task Alerts"]
+
+        Opus -->|"Updates Context"| ClaudeMD
+        Opus -->|"Writes Briefs & Orders"| CommandPost
+        Opus -->|"Writes Detailed Specs"| HandoffDocs
+
+        Sonnet -->|"Reads Assignments"| CommandPost
+        Codex -->|"Reads Specifications"| HandoffDocs
+        Codex -->|"Writes Completion Report"| HandoffDocs
+
+        Antigravity -->|"References"| HandoffDocs
+
+        EmailBriefs -->|"Daily Email"| Lawrence
+    end
+
+    subgraph HandoffPipeline["🔄 SPEC → IMPLEMENT → REVIEW → TRIAGE → SHIP PIPELINE"]
+        Spec["1️⃣ Opus Writes Spec<br/>(Detailed Requirements<br/>UI/UX | API Routes<br/>DB Schema | Data Flow)"]
+
+        Implement["2️⃣ Sonnet/Codex Implement<br/>(Code Generation<br/>Branching | Testing<br/>Commit Messages)"]
+
+        Review["3️⃣ Antigravity Reviews<br/>(Bug Detection<br/>Security Checks<br/>Code Quality)"]
+
+        Triage["4️⃣ Opus Triages Findings<br/>(Severity Assessment<br/>Approve or Rework<br/>Escalate if Needed)"]
+
+        Ship["5️⃣ Ship to Production<br/>(Auto-Update | App Store<br/>Changelog | Announce)"]
+
+        Spec -->|"Handoff Spec"| Implement
+        Implement -->|"Pull Request"| Review
+        Review -->|"Findings Report"| Triage
+        Triage -->|"Approved ✓"| Ship
+        Triage -->|"Needs Work ✗"| Implement
+    end
+
+    %% Cross-connections
+    Module09 -->|"Query/Sync"| LocalSQLite
+    Module09 -->|"Notion Sync Endpoint"| NotionDB
+    Module09 -->|"Local Inference"| OllamaServer
+
+    Kairos -->|"API Calls"| RemoteAPIs
+
+    ChaosMon -->|"Built on"| FastAPIBE
+    Device01 -->|"Bundles"| OllamaServer
+    Device01 -->|"Runs"| Module09
+
+    %% Data flow feedback
+    ChatGPT -->|"Populates"| NotionDocs
+    NotionDB -->|"Task Updates"| LocalSQLite
+    LocalSQLite -->|"Serves"| ReactFE
+
+    %% High-level hierarchy
+    Command -->|"Coordinates"| Execution
+    Command -->|"Monitors"| Quality
+    Command -->|"Directs"| Research
+    Execution -->|"Ships"| Products
+    Research -->|"Informs Strategy"| Command
+
+    classDef command fill:#2563eb,stroke:#1e40af,stroke-width:3px,color:#fff
+    classDef execution fill:#7c3aed,stroke:#6d28d9,stroke-width:2px,color:#fff
+    classDef quality fill:#059669,stroke:#047857,stroke-width:2px,color:#fff
+    classDef research fill:#dc2626,stroke:#991b1b,stroke-width:2px,color:#fff
+    classDef product fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#fff
+    classDef data fill:#0891b2,stroke:#0e7490,stroke-width:2px,color:#fff
+    classDef comm fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#fff
+    classDef pipeline fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
+
+    class Command command
+    class Lawrence,Opus command
+    class Execution execution
+    class Sonnet,Codex,OpenClaw execution
+    class Quality quality
+    class Antigravity quality
+    class Research research
+    class ChatGPT,Gemini,Copilot,Eve research
+    class Products product
+    class Module09,Kairos,ChaosMon,Device01 product
+    class Module09Arch,KairosArch data
+    class DataInfra data
+    class LocalSQLite,NotionDB,OllamaServer,RemoteAPIs data
+    class Communications comm
+    class ClaudeMD,HandoffDocs,CommandPost,EmailBriefs comm
+    class HandoffPipeline pipeline
